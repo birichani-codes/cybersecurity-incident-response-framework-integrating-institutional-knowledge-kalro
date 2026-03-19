@@ -47,10 +47,36 @@ The design follows **NIST Cybersecurity Framework principles** and **MIST design
 
 ## Framework Alignment
 
-- **NIST Cybersecurity Functions:** Identify, Protect, Detect, Respond, Recover  
-- **SECI Knowledge Management:** Socialization, Externalization, Combination, Internalization  
-- **MIST Design Principles:** Microservices (conceptual), Integration, Security, Technology  
+This prototype aligns with established frameworks and design principles to ensure **security, scalability, and effective knowledge management**.
 
+- **NIST Cybersecurity Functions:** Provides structured incident management.
+  - Identify: Know assets and risks  
+  - Protect: Secure access and data  
+  - Detect: Monitor logs and alerts  
+  - Respond: Execute mitigation strategies  
+  - Recover: Capture lessons learned and restore operations
+
+- **SECI Knowledge Management:** Captures and shares institutional knowledge.
+  - Socialization: Team discussions and collaboration  
+  - Externalization: Annotate and record incident insights  
+  - Combination: Integrate knowledge across incidents  
+  - Internalization: Apply lessons learned to future responses
+
+- **MIST Design Principles:** Ensures modularity and modern system design.
+  - Microservices: Separate prototype components (Auth, Incident, Knowledge, NLP)  
+  - Integration: Connect with external systems (Logs, IDS, Threat Feeds)  
+  - Security: Role-based access control, encryption, 2FA  
+  - Technology: Supports future automation and NLP tagging
+
+- **TRIKER Principle:** Guides effective knowledge lifecycle.
+  - Trigger: Initiate workflows when incidents occur or actions performed  
+  - Record: Document insights, annotations, and lessons learned  
+  - Integrate: Merge new knowledge with existing repository  
+  - Knowledge: Structure information for easy retrieval and analysis  
+  - Evaluate: Assess quality, relevance, and accuracy of captured knowledge  
+  - Reuse: Apply past knowledge to improve future responses
+
+![Framework Alignment](framework-alignment.drawio.png)
 ---
 
 ## Prototype Workflow (Pseudo-Algorithm)
