@@ -26,14 +26,14 @@ The design follows **NIST Cybersecurity Framework principles** and **MIST design
 
 ## Key Prototype Features
 
-- Role-based authentication with optional 2FA  
-- Interactive dashboard mockup for incident monitoring  
-- Knowledge capture and annotation demonstration  
-- Prototype search and retrieval of past incidents  
-- Conceptual integration with logs and threat intelligence feeds  
-- Simulated centralized knowledge repository  
+- **Role-based authentication with optional 2FA**  
+- **Interactive dashboard mockup for incident monitoring**  
+- **Knowledge capture and annotation demonstration**  
+- **Prototype search and retrieval of past incidents**  
+- **Conceptual integration with logs and threat intelligence feeds**  
+- **Simulated centralized knowledge repository**  
 
----
+![Key Prototype Features](prototype-feature.png)
 
 ## Prototype Architecture
 
