@@ -78,7 +78,6 @@ This prototype aligns with established frameworks and design principles to ensur
 
 ![Framework Alignment](framework-alignment.drawio.png)
 ---
-
 ## Prototype Workflow (Pseudo-Algorithm)
 
 ```text
@@ -140,49 +139,70 @@ BEGIN
 // Continuous Improvement
 14. Feedback Loop (update knowledge relevance and response efficiency)
 
-END 
+END
 
-## UML Diagrams (Explanatory)
-
-In the prototype phase, UML diagrams help **visualize the design and workflows** without being fully implemented. Below is a guide to the UML diagrams you should consider:
+## UML Diagrams
 
 ### 1. Use Case Diagram
-
 **Purpose:** Show who interacts with the system and what they do.  
 **Actors:** Cybersecurity Analyst, System Administrator, External Systems (e.g., IDS, Logs)  
-**Use Cases:** Login/Authenticate, Detect Incident, View Incident, Annotate Knowledge, Search Knowledge Base, Retrieve Recommendations, Manage Users, Generate Reports  
-![Framework Alignment](usecase.drawio.png)
+**Use Cases:** 
+- Login / Authenticate  
+- Detect Incident  
+- View Incident  
+- Annotate Knowledge  
+- Search Knowledge Base  
+- Retrieve Recommendations  
+- Manage Users  
+- Generate Reports  
+
+**Tip:** Use stick figures for actors, ovals for use cases, and a system boundary box.
+
+![Use Case Diagram](usecase.drawio.png)
+
 ---
 
 ### 2. Activity Diagram
-
 **Purpose:** Illustrate step-by-step workflows of the system.  
 **Example Flow:** Start → Detect Incident → Retrieve Knowledge → Decision (Knowledge Found?) → Analyze → Respond → Store Knowledge → End  
 **Tip:** Include decision diamonds, arrows for flow, and parallel actions if needed.
 
-![Framework Alignment](activity.drawio.png)
+![Activity Diagram](activity.drawio.png)
+
 ---
 
 ### 3. Sequence Diagram
-
-**Purpose:** Show interactions over time between components.  
+**Purpose:** Show interactions over time between system components.  
 **Key Components:** User (Analyst), Frontend Dashboard, Backend Server, Knowledge Base, Integration Layer  
-**Example Flow:** User logs in → System authenticates → Incident detected → System queries Knowledge Base → Results returned → User annotates → System saves data  
+**Example Flow:** 
+1. User logs in  
+2. System authenticates  
+3. Incident detected  
+4. System queries Knowledge Base  
+5. Results returned  
+6. User annotates  
+7. System saves data  
 
-![Framework Alignment](sequence.drawio.png)
+**Tip:** Represent vertical lifelines for components and horizontal arrows for messages.
+
+![Sequence Diagram](sequence.drawio.png)
+
 ---
 
 ### 4. Class Diagram
-
-**Purpose:** Display system structure (entities and relationships).  
+**Purpose:** Display system structure, entities, and relationships.  
 **Key Classes:** User, Incident, Knowledge, Annotation, Entity (IP, File, User), Report  
-**Include:** Attributes (id, name, timestamp), Methods (save(), retrieve()), Relationships (e.g., User → Knowledge one-to-many, Incident ↔ Knowledge association)
+**Include:** 
+- Attributes (id, name, timestamp)  
+- Methods (save(), retrieve())  
+- Relationships (e.g., User → Knowledge one-to-many, Incident ↔ Knowledge association)  
 
-![Framework Alignment](class.drawio.png)
+![Class Diagram](class.drawio.png)
+
 ---
 
 ### 5. Component Diagram
-
 **Purpose:** Show system architecture and modules.  
 **Key Components:** Authentication Service, Incident Management, Knowledge Management, NLP/Tagging Engine, Integration Layer, Database  
-![Framework Alignment](component.drawio.png)
+
+![Component Diagram](component.drawio.png)
