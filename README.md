@@ -151,8 +151,7 @@ In the prototype phase, UML diagrams help **visualize the design and workflows**
 **Purpose:** Show who interacts with the system and what they do.  
 **Actors:** Cybersecurity Analyst, System Administrator, External Systems (e.g., IDS, Logs)  
 **Use Cases:** Login/Authenticate, Detect Incident, View Incident, Annotate Knowledge, Search Knowledge Base, Retrieve Recommendations, Manage Users, Generate Reports  
-**Tip:** Use stick figures for actors, ovals for use cases, and a box for the system boundary.
-
+![Framework Alignment](usecase.drawio.png)
 ---
 
 ### 2. Activity Diagram
@@ -161,6 +160,7 @@ In the prototype phase, UML diagrams help **visualize the design and workflows**
 **Example Flow:** Start → Detect Incident → Retrieve Knowledge → Decision (Knowledge Found?) → Analyze → Respond → Store Knowledge → End  
 **Tip:** Include decision diamonds, arrows for flow, and parallel actions if needed.
 
+![Framework Alignment](activity.drawio.png)
 ---
 
 ### 3. Sequence Diagram
@@ -168,8 +168,8 @@ In the prototype phase, UML diagrams help **visualize the design and workflows**
 **Purpose:** Show interactions over time between components.  
 **Key Components:** User (Analyst), Frontend Dashboard, Backend Server, Knowledge Base, Integration Layer  
 **Example Flow:** User logs in → System authenticates → Incident detected → System queries Knowledge Base → Results returned → User annotates → System saves data  
-**Tip:** Represent vertical lifelines for components and horizontal arrows for messages.
 
+![Framework Alignment](sequence.drawio.png)
 ---
 
 ### 4. Class Diagram
@@ -178,10 +178,11 @@ In the prototype phase, UML diagrams help **visualize the design and workflows**
 **Key Classes:** User, Incident, Knowledge, Annotation, Entity (IP, File, User), Report  
 **Include:** Attributes (id, name, timestamp), Methods (save(), retrieve()), Relationships (e.g., User → Knowledge one-to-many, Incident ↔ Knowledge association)
 
+![Framework Alignment](class.drawio.png)
 ---
 
 ### 5. Component Diagram
 
 **Purpose:** Show system architecture and modules.  
 **Key Components:** Authentication Service, Incident Management, Knowledge Management, NLP/Tagging Engine, Integration Layer, Database  
-**Tip:** Show connections and dependencies between components to visualize modularity.
+![Framework Alignment](component.drawio.png)
