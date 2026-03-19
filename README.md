@@ -33,7 +33,7 @@ The design follows **NIST Cybersecurity Framework principles** and **MIST design
 - **Conceptual integration with logs and threat intelligence feeds**  
 - **Simulated centralized knowledge repository**  
 
-![Key Prototype Features](prototype-feature.png)
+![Key Prototype Features](Feature.drawio.png)
 
 ## Prototype Architecture
 
