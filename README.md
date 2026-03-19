@@ -43,7 +43,7 @@ The design follows **NIST Cybersecurity Framework principles** and **MIST design
 - **Integration Layer** – Conceptual connection with logs/external systems  
 - **Data Layer** – Simulated storage for incidents and knowledge  
 
----
+![Prototype Architecture](prototype.png)
 
 ## Framework Alignment
 
