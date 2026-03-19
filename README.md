@@ -78,6 +78,67 @@ This prototype aligns with established frameworks and design principles to ensur
 
 ![Framework Alignment](framework-alignment.drawio.png)
 ---
+## UML Diagrams
+
+### 1. Use Case Diagram
+**Purpose:** Show who interacts with the system and what they do.  
+**Actors:** Cybersecurity Analyst, System Administrator, External Systems (e.g., IDS, Logs)  
+**Use Cases:** 
+- Login / Authenticate  
+- Detect Incident  
+- View Incident  
+- Annotate Knowledge  
+- Search Knowledge Base  
+- Retrieve Recommendations  
+- Manage Users  
+- Generate Reports  
+
+![Use Case Diagram](usecase.drawio.png)
+
+---
+
+### 2. Activity Diagram
+**Purpose:** Illustrate step-by-step workflows of the system.  
+**Example Flow:** Start → Detect Incident → Retrieve Knowledge → Decision (Knowledge Found?) → Analyze → Respond → Store Knowledge → End  
+
+![Activity Diagram](activity.drawio.png)
+
+---
+
+### 3. Sequence Diagram
+**Purpose:** Show interactions over time between system components.  
+**Key Components:** User (Analyst), Frontend Dashboard, Backend Server, Knowledge Base, Integration Layer  
+
+1. User logs in  
+2. System authenticates  
+3. Incident detected  
+4. System queries Knowledge Base  
+5. Results returned  
+6. User annotates  
+7. System saves data  
+![Sequence Diagram](sequence.drawio.png)
+
+---
+
+### 4. Class Diagram
+**Purpose:** Display system structure, entities, and relationships.  
+**Key Classes:** User, Incident, Knowledge, Annotation, Entity (IP, File, User), Report  
+**Include:** 
+- Attributes (id, name, timestamp)  
+- Methods (save(), retrieve())  
+- Relationships (e.g., User → Knowledge one-to-many, Incident ↔ Knowledge association)  
+
+![Class Diagram](class.drawio.png)
+
+---
+
+### 5. Component Diagram
+**Purpose:** Show system architecture and modules.  
+**Key Components:** Authentication Service, Incident Management, Knowledge Management, NLP/Tagging Engine, Integration Layer, Database  
+
+![Component Diagram](component.drawio.png)
+
+
 ## Prototype Workflow (Pseudo-Algorithm)
 
 ```text
@@ -141,68 +202,3 @@ BEGIN
 
 END
 
-## UML Diagrams
-
-### 1. Use Case Diagram
-**Purpose:** Show who interacts with the system and what they do.  
-**Actors:** Cybersecurity Analyst, System Administrator, External Systems (e.g., IDS, Logs)  
-**Use Cases:** 
-- Login / Authenticate  
-- Detect Incident  
-- View Incident  
-- Annotate Knowledge  
-- Search Knowledge Base  
-- Retrieve Recommendations  
-- Manage Users  
-- Generate Reports  
-
-**Tip:** Use stick figures for actors, ovals for use cases, and a system boundary box.
-
-![Use Case Diagram](usecase.drawio.png)
-
----
-
-### 2. Activity Diagram
-**Purpose:** Illustrate step-by-step workflows of the system.  
-**Example Flow:** Start → Detect Incident → Retrieve Knowledge → Decision (Knowledge Found?) → Analyze → Respond → Store Knowledge → End  
-**Tip:** Include decision diamonds, arrows for flow, and parallel actions if needed.
-
-![Activity Diagram](activity.drawio.png)
-
----
-
-### 3. Sequence Diagram
-**Purpose:** Show interactions over time between system components.  
-**Key Components:** User (Analyst), Frontend Dashboard, Backend Server, Knowledge Base, Integration Layer  
-**Example Flow:** 
-1. User logs in  
-2. System authenticates  
-3. Incident detected  
-4. System queries Knowledge Base  
-5. Results returned  
-6. User annotates  
-7. System saves data  
-
-**Tip:** Represent vertical lifelines for components and horizontal arrows for messages.
-
-![Sequence Diagram](sequence.drawio.png)
-
----
-
-### 4. Class Diagram
-**Purpose:** Display system structure, entities, and relationships.  
-**Key Classes:** User, Incident, Knowledge, Annotation, Entity (IP, File, User), Report  
-**Include:** 
-- Attributes (id, name, timestamp)  
-- Methods (save(), retrieve())  
-- Relationships (e.g., User → Knowledge one-to-many, Incident ↔ Knowledge association)  
-
-![Class Diagram](class.drawio.png)
-
----
-
-### 5. Component Diagram
-**Purpose:** Show system architecture and modules.  
-**Key Components:** Authentication Service, Incident Management, Knowledge Management, NLP/Tagging Engine, Integration Layer, Database  
-
-![Component Diagram](component.drawio.png)
