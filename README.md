@@ -444,7 +444,7 @@ kalro-ikf/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/kalro-ikf.git
+https://github.com/birichani-codes/cybersecurity-incident-response-framework-integrating-institutional-knowledge-kalro.git
 cd kalro-ikf
 
 # Install backend dependencies
