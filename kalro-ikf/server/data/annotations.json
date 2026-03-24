@@ -1,0 +1,23 @@
+[
+  {
+    "id": "a1",
+    "knowledge_id": "k1",
+    "user_id": "u4",
+    "note": "Used this during the August PowerShell incident — checking auth logs within 30 min of click events was particularly useful.",
+    "created_at": "2024-08-15T10:30:00Z"
+  },
+  {
+    "id": "a2",
+    "knowledge_id": "k2",
+    "user_id": "u2",
+    "note": "Confirmed: NoMoreRansom had no decryptor for LockBit 3.0 as of April 2024. Restored from backup successfully.",
+    "created_at": "2024-04-13T11:00:00Z"
+  },
+  {
+    "id": "a3",
+    "knowledge_id": "k4",
+    "user_id": "u4",
+    "note": "HR escalation was sensitive — legal needed to be looped in before any action. Do not skip this step.",
+    "created_at": "2024-06-19T14:00:00Z"
+  }
+]
