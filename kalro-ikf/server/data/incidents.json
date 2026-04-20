@@ -5,11 +5,11 @@
     "type": "phishing",
     "severity": "high",
     "status": "resolved",
-    "description": "Multiple staff members received spoofed emails impersonating KALRO IT support requesting password resets. 3 users clicked the malicious link before the campaign was detected.",
+    "is_major": false,
+    "description": "Multiple staff received spoofed emails impersonating KALRO IT support requesting password resets. 3 users clicked the malicious link.",
     "entities": {
       "ips": [
-        "196.201.214.55",
-        "41.89.64.12"
+        "196.201.214.55"
       ],
       "emails": [
         "itsupport-fake@kalro-help.com"
@@ -17,6 +17,7 @@
     },
     "reported_by": "u2",
     "assigned_to": "u2",
+    "sla_deadline": "2024-03-05T13:15:00Z",
     "created_at": "2024-03-05T09:15:00Z",
     "updated_at": "2024-03-05T16:40:00Z"
   },
@@ -26,13 +27,11 @@
     "type": "ransomware",
     "severity": "critical",
     "status": "resolved",
-    "description": "A ransomware variant (LockBit 3.0) was detected on a research workstation in the Crop Sciences lab. Files in the shared drive were partially encrypted before isolation.",
+    "is_major": true,
+    "description": "LockBit 3.0 detected on a Crop Sciences workstation. Files partially encrypted before isolation.",
     "entities": {
       "ips": [
         "10.0.2.45"
-      ],
-      "file_hashes": [
-        "d41d8cd98f00b204e9800998ecf8427e"
       ],
       "hostnames": [
         "ws-cropscience-04"
@@ -40,6 +39,7 @@
     },
     "reported_by": "u4",
     "assigned_to": "u2",
+    "sla_deadline": "2024-04-12T16:22:00Z",
     "created_at": "2024-04-12T14:22:00Z",
     "updated_at": "2024-04-13T10:00:00Z"
   },
@@ -49,20 +49,19 @@
     "type": "unauthorized_access",
     "severity": "critical",
     "status": "investigating",
-    "description": "Anomalous login activity detected on the HR database server outside business hours. Multiple failed attempts followed by a successful login from an unrecognized IP.",
+    "is_major": true,
+    "description": "Anomalous login detected on HR database server outside business hours. Multiple failed attempts followed by a successful login from unrecognized IP.",
     "entities": {
       "ips": [
         "102.68.45.201"
       ],
       "users": [
         "hr_admin"
-      ],
-      "systems": [
-        "hr-db-server-01"
       ]
     },
     "reported_by": "u2",
     "assigned_to": "u4",
+    "sla_deadline": "2024-06-18T04:10:00Z",
     "created_at": "2024-06-18T02:10:00Z",
     "updated_at": "2024-06-18T09:30:00Z"
   },
@@ -72,18 +71,16 @@
     "type": "ddos",
     "severity": "high",
     "status": "resolved",
-    "description": "KALRO public-facing web portal experienced a volumetric DDoS attack resulting in 4 hours of downtime. Traffic peaked at 12Gbps.",
+    "is_major": true,
+    "description": "KALRO public web portal experienced volumetric DDoS attack. 4 hours downtime. Traffic peaked at 12Gbps.",
     "entities": {
-      "ips": [
-        "various"
-      ],
       "systems": [
-        "web-portal-01",
-        "web-portal-02"
+        "web-portal-01"
       ]
     },
     "reported_by": "u4",
     "assigned_to": "u2",
+    "sla_deadline": "2024-07-03T15:00:00Z",
     "created_at": "2024-07-03T11:00:00Z",
     "updated_at": "2024-07-03T15:30:00Z"
   },
@@ -93,7 +90,8 @@
     "type": "malware",
     "severity": "medium",
     "status": "escalated",
-    "description": "EDR alerts flagged obfuscated PowerShell scripts running on 2 admin workstations attempting to download a payload from an external C2 server.",
+    "is_major": false,
+    "description": "EDR flagged obfuscated PowerShell scripts on 2 admin workstations attempting C2 download.",
     "entities": {
       "ips": [
         "185.220.101.32"
@@ -105,6 +103,7 @@
     },
     "reported_by": "u2",
     "assigned_to": "u2",
+    "sla_deadline": "2024-08-20T21:45:00Z",
     "created_at": "2024-08-20T13:45:00Z",
     "updated_at": "2024-08-20T14:00:00Z"
   },
@@ -114,17 +113,16 @@
     "type": "data_exfiltration",
     "severity": "medium",
     "status": "open",
-    "description": "DLP system flagged a large file transfer to a USB device on a researcher workstation. Files included restricted genomics research data.",
+    "is_major": false,
+    "description": "DLP flagged large file transfer to USB on researcher workstation containing restricted genomics data.",
     "entities": {
       "users": [
         "researcher07@kalro.org"
-      ],
-      "hostnames": [
-        "ws-genomics-02"
       ]
     },
     "reported_by": "u4",
     "assigned_to": null,
+    "sla_deadline": "2024-09-11T00:20:00Z",
     "created_at": "2024-09-10T16:20:00Z",
     "updated_at": "2024-09-10T16:20:00Z"
   }

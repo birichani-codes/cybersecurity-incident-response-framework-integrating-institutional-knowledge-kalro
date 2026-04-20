@@ -1,8 +1,9 @@
 [
   {
     "id": "k1",
-    "title": "Phishing Response Playbook — Credential Harvesting",
-    "content": "When a phishing campaign is detected:\n1. Immediately block the sending domain at the email gateway.\n2. Search mail logs for all recipients of the campaign.\n3. Force password resets for any users who clicked the link.\n4. Check authentication logs for successful logins from suspicious IPs within 30 minutes of click events.\n5. Send an all-staff awareness alert within 2 hours.\n6. Report phishing domain to KE-CIRT and submit to PhishTank.\n\nLessons learned (March 2024): Users are more likely to fall for emails spoofing internal IT support during system upgrade periods.",
+    "title": "Phishing Response Playbook",
+    "knowledge_type": "playbook",
+    "content": "1. Block sending domain at email gateway.\n2. Search mail logs for all recipients.\n3. Force password resets for users who clicked.\n4. Check auth logs for logins from suspicious IPs within 30 minutes of click events.\n5. Send all-staff awareness alert within 2 hours.\n6. Report domain to KE-CIRT and PhishTank.\n\nKALRO note: Users are more likely to fall for emails spoofing IT support during maintenance windows.",
     "tags": [
       "phishing",
       "email",
@@ -21,14 +22,14 @@
   },
   {
     "id": "k2",
-    "title": "Ransomware Containment and Recovery Procedure",
-    "content": "Immediate containment steps:\n1. Isolate the infected machine from the network immediately.\n2. Do NOT shut down the machine — volatile memory may contain decryption keys.\n3. Identify the ransomware variant using ID Ransomware.\n4. Check if the variant has a known decryptor at NoMoreRansom.org before paying.\n5. Identify the blast radius: check shared drives for encrypted files.\n6. Restore affected files from the most recent clean backup.\n7. Reimage the infected machine before reconnecting.\n\nKALRO note: Research data backups are on NAS at backup-nas-01. Snapshots every 6 hours.",
+    "title": "Ransomware Containment and Recovery",
+    "knowledge_type": "runbook",
+    "content": "1. Isolate infected machine immediately — pull network cable.\n2. Do NOT shut down — volatile memory may contain decryption keys.\n3. Identify variant using ID Ransomware (upload ransom note).\n4. Check NoMoreRansom.org for known decryptor before considering payment.\n5. Check shared drives for encrypted files.\n6. Restore from most recent clean backup — verify integrity first.\n7. Reimage before reconnecting.\n\nKALRO: Research backups on NAS at backup-nas-01. Snapshots every 6 hours. Contact David Kamau for access.",
     "tags": [
       "ransomware",
       "containment",
       "recovery",
-      "backup",
-      "LockBit"
+      "backup"
     ],
     "incident_id": "inc2",
     "contributor_id": "u4",
@@ -42,14 +43,14 @@
   },
   {
     "id": "k3",
-    "title": "DDoS Mitigation — Upstream Filtering Activation",
-    "content": "KALRO ISP (Safaricom Business) provides upstream DDoS filtering under the enterprise SLA.\n\n1. Call Safaricom NOC (24/7 — get current number from ICT manager).\n2. Provide account number and describe attack type and volume.\n3. Request upstream null-routing or scrubbing center activation.\n4. Typical activation time: 15-30 minutes.\n5. Monitor traffic at the border router during mitigation.\n\nAlternatively: if Cloudflare is configured, enable Under Attack Mode in the Cloudflare dashboard.",
+    "title": "DDoS Mitigation — Upstream Filtering",
+    "knowledge_type": "runbook",
+    "content": "Safaricom Business provides upstream DDoS filtering under enterprise SLA.\n1. Call Safaricom NOC 24/7 — get current number from ICT manager.\n2. Provide account number, describe attack type and volume.\n3. Request null-routing or scrubbing center activation.\n4. Activation time: 15-30 minutes.\n5. Monitor border router during mitigation.\n\nAlternative: Enable Cloudflare Under Attack Mode if domain is proxied.",
     "tags": [
       "ddos",
       "network",
       "mitigation",
-      "isp",
-      "cloudflare"
+      "isp"
     ],
     "incident_id": "inc4",
     "contributor_id": "u2",
@@ -63,14 +64,14 @@
   },
   {
     "id": "k4",
-    "title": "Compromised Credentials — Database Access Investigation",
-    "content": "When unauthorized database access is suspected:\n1. Immediately lock the compromised account.\n2. Pull the last 30 days of authentication logs.\n3. Check for data exfiltration: review SELECT queries on sensitive tables.\n4. Check if the same credentials are used on other systems.\n5. Interview the account owner.\n6. Preserve logs before any remediation.\n7. If insider threat suspected, escalate to HR and legal before confronting the user.\n\nKALRO: Audit logs at /var/log/mysql/audit.log on hr-db-server-01. Retention 90 days.",
+    "title": "Compromised DB Credentials — Investigation",
+    "knowledge_type": "playbook",
+    "content": "1. Lock the compromised account immediately.\n2. Pull 30 days of auth logs.\n3. Check for data exfiltration — review SELECT queries on sensitive tables.\n4. Check credential reuse across systems.\n5. Interview account owner.\n6. Preserve logs before remediation.\n7. Escalate to HR and legal before confronting the user if insider threat suspected.\n\nKALRO: Audit logs at /var/log/mysql/audit.log on hr-db-server-01. 90-day retention.",
     "tags": [
       "unauthorized-access",
       "database",
       "credentials",
-      "insider-threat",
-      "investigation"
+      "insider-threat"
     ],
     "incident_id": "inc3",
     "contributor_id": "u2",
@@ -84,41 +85,23 @@
   },
   {
     "id": "k5",
-    "title": "PowerShell Obfuscation Detection and Response",
-    "content": "Key indicators of obfuscated PowerShell:\n- Base64-encoded command strings in process arguments\n- Use of Invoke-Expression (IEX) or & operator\n- Download cradles: (New-Object Net.WebClient).DownloadString(...)\n\nResponse steps:\n1. Collect the full PowerShell transcript from the affected machine.\n2. Decode base64: [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('...'))\n3. Submit decoded payload to VirusTotal.\n4. Block the C2 IP at the firewall immediately.\n5. Review lateral movement: check for new scheduled tasks and registry run keys.\n\nPreventive: Enable PowerShell Constrained Language Mode on non-admin workstations.",
+    "title": "PowerShell Obfuscation Detection",
+    "knowledge_type": "reference",
+    "content": "Indicators: Base64-encoded args, Invoke-Expression (IEX), download cradles.\n\n1. Collect PowerShell transcript from machine.\n2. Decode base64: [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String(\"...\"))\n3. Submit to VirusTotal.\n4. Block C2 IP at firewall immediately.\n5. Check for new scheduled tasks and registry run keys.\n\nPreventive: Enable Constrained Language Mode on non-admin workstations via Group Policy.",
     "tags": [
       "powershell",
       "malware",
-      "living-off-the-land",
       "endpoint",
       "C2"
     ],
     "incident_id": "inc5",
     "contributor_id": "u2",
-    "confidence_score": 0.78,
+    "confidence_score": 0.48,
     "version": 1,
     "superseded_by": null,
     "status": "active",
     "use_count": 0,
     "last_used_at": null,
     "created_at": "2024-08-21T09:00:00Z"
-  },
-  {
-    "id": "k6",
-    "title": "Old Phishing Response Guide (v1 — Superseded)",
-    "content": "Block the domain and reset passwords. Notify staff.",
-    "tags": [
-      "phishing",
-      "email"
-    ],
-    "incident_id": "inc1",
-    "contributor_id": "u2",
-    "confidence_score": 0.2,
-    "version": 1,
-    "superseded_by": "k1",
-    "status": "superseded",
-    "use_count": 3,
-    "last_used_at": "2024-03-10T09:00:00Z",
-    "created_at": "2024-03-05T17:00:00Z"
   }
 ]

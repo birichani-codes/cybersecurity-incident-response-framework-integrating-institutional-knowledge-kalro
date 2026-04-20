@@ -1,6 +1,6 @@
 [
   {
-    "id": "log0e21c26b",
+    "id": "logd857bfe1",
     "user_id": "u1",
     "action": "LOGIN",
     "target_type": null,
@@ -8,32 +8,10 @@
     "metadata": {
       "email": "alice@kalro.org"
     },
-    "created_at": "2026-03-24T09:53:56.167Z"
+    "created_at": "2026-04-20T16:24:15.704Z"
   },
   {
-    "id": "log2849c6a1",
-    "user_id": "u3",
-    "action": "LOGIN",
-    "target_type": null,
-    "target_id": null,
-    "metadata": {
-      "email": "carol@kalro.org"
-    },
-    "created_at": "2026-03-24T09:19:43.271Z"
-  },
-  {
-    "id": "log578caf15",
-    "user_id": "u2",
-    "action": "LOGIN",
-    "target_type": null,
-    "target_id": null,
-    "metadata": {
-      "email": "brian@kalro.org"
-    },
-    "created_at": "2026-03-24T09:19:16.168Z"
-  },
-  {
-    "id": "log93c1c6e9",
+    "id": "logbfa17ecc",
     "user_id": "u1",
     "action": "LOGIN",
     "target_type": null,
@@ -41,7 +19,7 @@
     "metadata": {
       "email": "alice@kalro.org"
     },
-    "created_at": "2026-03-24T09:18:35.397Z"
+    "created_at": "2026-04-20T16:23:24.969Z"
   },
   {
     "id": "log1",
@@ -61,7 +39,7 @@
     "target_type": "incident",
     "target_id": "inc5",
     "metadata": {
-      "title": "Suspicious PowerShell Scripts Executed"
+      "title": "Suspicious PowerShell"
     },
     "created_at": "2024-08-20T13:45:00Z"
   },
@@ -72,7 +50,7 @@
     "target_type": "knowledge",
     "target_id": "k2",
     "metadata": {
-      "title": "Ransomware Containment and Recovery Procedure"
+      "title": "Ransomware Containment"
     },
     "created_at": "2024-04-14T09:00:00Z"
   },

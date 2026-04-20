@@ -1,14 +1,10 @@
 {
   "name": "kalro-ikf-server",
   "version": "1.0.0",
-  "description": "KALRO IKF Backend API Server",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
-  },
-  "engines": {
-    "node": ">=18"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -20,13 +16,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
-  },
-  "keywords": [
-    "kalro",
-    "api",
-    "express",
-    "backend"
-  ],
-  "author": "birichani-codes",
-  "license": "ISC"
+  }
 }
