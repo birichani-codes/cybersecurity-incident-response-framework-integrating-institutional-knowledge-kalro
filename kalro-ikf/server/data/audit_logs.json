@@ -1,5 +1,71 @@
 [
   {
+    "id": "logaa66b65d",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-04-21T17:17:36.913Z"
+  },
+  {
+    "id": "logfe6fe65c",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-04-21T17:14:10.889Z"
+  },
+  {
+    "id": "log6ed9674b",
+    "user_id": "u2",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "brian@kalro.org"
+    },
+    "created_at": "2026-04-21T08:16:14.447Z"
+  },
+  {
+    "id": "log44e9a2c7",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-04-21T08:12:07.302Z"
+  },
+  {
+    "id": "loge1d483ba",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-04-21T07:11:52.005Z"
+  },
+  {
+    "id": "log123f26d5",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-04-21T07:10:32.313Z"
+  },
+  {
     "id": "logd857bfe1",
     "user_id": "u1",
     "action": "LOGIN",
