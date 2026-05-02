@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import NotificationCenter from './NotificationCenter'
 
 const NAV = [
   { to:'/',          label:'Dashboard',     icon:'⬡', exact:true },
@@ -7,11 +8,14 @@ const NAV = [
   { to:'/knowledge', label:'Knowledge Base', icon:'◈' },
   { to:'/defensive-routines', label:'Defensive Routines', icon:'🎯' },
   { to:'/search',    label:'Search',         icon:'◎' },
+  { to:'/notifications', label:'Notifications', icon:'🔔' },
 ]
 const ADMIN_NAV = [
   { to:'/reports', label:'Reports', icon:'▤' },
   { to:'/users',   label:'Users',   icon:'◉' },
   { to:'/config/game-theory', label:'Game Theory Config', icon:'⚖️' },
+  { to:'/sync-dashboard', label:'Hub Sync', icon:'🌐' },
+  { to:'/station-management', label:'Station Management', icon:'🏛️' },
 ]
 
 export default function Layout() {
@@ -71,12 +75,18 @@ export default function Layout() {
             <div style={{flex:1,overflow:'hidden'}}>
               <div style={{fontSize:13,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{user?.name}</div>
               <div style={{fontSize:11,fontFamily:'var(--font-mono)',color:roleColor[user?.role]||'var(--text3)'}}>{user?.role?.replace('_',' ')}</div>
+              {user?.station_id && <div style={{fontSize:11,fontFamily:'var(--font-mono)',color:'var(--kalro-green-light)',marginTop:2}}>📍 {user?.station_id}</div>}
             </div>
           </div>
           <button onClick={()=>{logout();navigate('/login');}} className="btn btn-ghost btn-sm" style={{width:'100%',justifyContent:'center'}}>Sign out</button>
         </div>
       </aside>
-      <main className="main-content"><Outlet/></main>
+      <main className="main-content" style={{display:'flex',flexDirection:'column'}}>
+        <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'flex-end',alignItems:'center',gap:15,backgroundColor:'var(--surface)'}}>
+          <NotificationCenter/>
+        </div>
+        <div style={{flex:1,overflowY:'auto'}}><Outlet/></div>
+      </main>
     </div>
   )
 }

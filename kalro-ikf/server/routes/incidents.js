@@ -28,17 +28,28 @@ function enrichIncident(inc, users, knowledge) {
   const sla_deadline = inc.sla_deadline || computeSlaDeadline(inc.severity, inc.created_at);
   const sla_breached = !['resolved','closed'].includes(inc.status) && new Date() > new Date(sla_deadline);
   const sla_minutes_remaining = Math.round((new Date(sla_deadline)-new Date())/60000);
-  return { ...inc, sla_deadline, sla_breached, sla_minutes_remaining, reporter_name:r?r.name:'Unknown', assignee_name:a?a.name:'Unassigned', ...(related!==undefined?{related_knowledge:related}:{}) };
+  return {
+    ...inc,
+    site: inc.station_id || 'Site A',
+    sla_deadline,
+    sla_breached,
+    sla_minutes_remaining,
+    reporter_name:r?r.name:'Unknown',
+    assignee_name:a?a.name:'Unassigned',
+    ...(related!==undefined?{related_knowledge:related}:{})
+  };
 }
 
 router.get('/', authenticate, (req,res) => {
-  const { status, severity, type, is_major } = req.query;
+  const { status, severity, type, is_major, station_id, scope } = req.query;
   const users = read('users'); const knowledge = read('knowledge');
   let f = read('incidents');
   if (status)   f = f.filter(i => i.status===status);
   if (severity) f = f.filter(i => i.severity===severity);
   if (type)     f = f.filter(i => i.type===type);
   if (is_major) f = f.filter(i => i.is_major===true);
+  if (station_id) f = f.filter(i => i.station_id===station_id);
+  if (scope==='local' && req.user.station_id) f = f.filter(i => i.station_id===req.user.station_id);
   res.json(f.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(i=>enrichIncident(i,users,knowledge)));
 });
 
@@ -64,7 +75,7 @@ router.get('/:id', authenticate, (req,res) => {
 });
 
 router.post('/', authenticate, requireMinRole('analyst'), (req,res) => {
-  const { title, type, severity, description, entities, is_major } = req.body;
+  const { title, type, severity, description, entities, is_major, station_id } = req.body;
   if (!title||!type||!severity) return res.status(400).json({ error:'title, type, severity required' });
   const incidents = read('incidents');
   const created_at = new Date().toISOString();
@@ -72,11 +83,58 @@ router.post('/', authenticate, requireMinRole('analyst'), (req,res) => {
     id:'inc'+uuid().slice(0,8), title, type, severity, status:'open',
     is_major: is_major||false, description:description||'', entities:entities||{},
     reported_by:req.user.id, assigned_to:null,
+    station_id: station_id || req.user.station_id || 'Site A',
     sla_deadline: computeSlaDeadline(severity, created_at),
     created_at, updated_at:created_at
   };
   incidents.push(newInc); write('incidents', incidents);
-  logAction({ userId:req.user.id, action:'CREATE_INCIDENT', targetType:'incident', targetId:newInc.id, metadata:{ title, severity, is_major:newInc.is_major } });
+  logAction({ userId:req.user.id, action:'CREATE_INCIDENT', targetType:'incident', targetId:newInc.id, metadata:{ title, severity, is_major:newInc.is_major, station_id:newInc.station_id } });
+  
+  // Trigger notifications for incident alert
+  const users = read('users');
+  const notifs = read('notifications');
+  const stationAnalysts = users.filter(u => 
+    u.station_id === newInc.station_id && 
+    (u.role === 'analyst' || u.role === 'super_admin')
+  );
+  stationAnalysts.forEach(analyst => {
+    const notification = {
+      id: Date.now().toString() + Math.random(),
+      title: `🚨 New Incident at ${newInc.station_id}`,
+      message: `${newInc.title} - ${newInc.description?.substring(0, 100)}...`,
+      type: 'incident_alert',
+      recipient_id: analyst.id,
+      recipient_station_id: newInc.station_id,
+      severity: severity,
+      related_incident_id: newInc.id,
+      action_url: `/incidents/${newInc.id}`,
+      read: false,
+      created_at: created_at,
+      created_by: 'SYSTEM'
+    };
+    notifs.push(notification);
+  });
+  if (severity === 'critical' || is_major) {
+    const superAdmins = users.filter(u => u.role === 'super_admin');
+    superAdmins.forEach(admin => {
+      const notification = {
+        id: Date.now().toString() + Math.random(),
+        title: `⚠️ ESCALATION: Critical Incident at ${newInc.station_id}`,
+        message: `${newInc.title} - Severity: ${severity}`,
+        type: 'escalation',
+        recipient_id: admin.id,
+        severity: 'critical',
+        related_incident_id: newInc.id,
+        action_url: `/incidents/${newInc.id}`,
+        read: false,
+        created_at: created_at,
+        created_by: 'SYSTEM'
+      };
+      notifs.push(notification);
+    });
+  }
+  write('notifications', notifs);
+  
   res.status(201).json(newInc);
 });
 

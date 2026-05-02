@@ -6,6 +6,13 @@
 
 const { read, write } = require('../store');
 
+function isRoutineAvailableForIncident(incident, routine) {
+  if (!routine.station_id) return true;
+  if (routine.global_routine) return true;
+  if (!incident.station_id) return true;
+  return routine.station_id === incident.station_id;
+}
+
 /**
  * Link knowledge entry to defensive routine
  * Marks knowledge as a reusable defensive routine
@@ -52,6 +59,7 @@ function suggestRoutines(incident) {
   knowledge.forEach(k => {
     if (!k.defensive_routine || !k.defensive_routine.enabled) return;
     if (k.status !== 'active') return;
+    if (!isRoutineAvailableForIncident(incident, k)) return;
 
     // Match by incident type
     const typeMatch = k.defensive_routine.applicable_incident_types.length === 0 ||
@@ -208,9 +216,12 @@ function reviewRoutineEffectiveness(incidentId, knowledgeId, review = {}) {
 /**
  * Get routine effectiveness metrics
  */
-function getRoutineMetrics() {
+function getRoutineMetrics(station_id) {
   const knowledge = read('knowledge');
-  const routines = knowledge.filter(k => k.defensive_routine && k.defensive_routine.enabled);
+  let routines = knowledge.filter(k => k.defensive_routine && k.defensive_routine.enabled);
+  if (station_id) {
+    routines = routines.filter(r => r.global_routine || r.station_id === station_id);
+  }
 
   const metrics = {
     total_routines: routines.length,
@@ -321,10 +332,13 @@ function getContributorName(userId) {
 /**
  * Analyze routine library coverage
  */
-function analyzeCoverage() {
+function analyzeCoverage(station_id) {
   const knowledge = read('knowledge');
   const incidents = read('incidents');
-  const routines = knowledge.filter(k => k.defensive_routine && k.defensive_routine.enabled);
+  let routines = knowledge.filter(k => k.defensive_routine && k.defensive_routine.enabled);
+  if (station_id) {
+    routines = routines.filter(r => r.global_routine || r.station_id === station_id);
+  }
 
   // Group incidents by type
   const incidentsByType = {};

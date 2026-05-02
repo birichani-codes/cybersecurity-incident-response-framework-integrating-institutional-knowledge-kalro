@@ -11,7 +11,7 @@ router.get('/knowledge-pulse', authenticate, (req, res) => {
 });
 
 router.post('/knowledge-pulse', authenticate, requireMinRole('analyst'), (req, res) => {
-  const { incident_id, routine_id, title, summary, source_site, target_site } = req.body;
+  const { incident_id, routine_id, title, summary, source_site, source_station_id, target_site, target_station_id } = req.body;
   if (!incident_id || !routine_id || !title || !summary) {
     return res.status(400).json({ error: 'incident_id, routine_id, title and summary are required' });
   }
@@ -24,7 +24,9 @@ router.post('/knowledge-pulse', authenticate, requireMinRole('analyst'), (req, r
     title,
     summary,
     source_site: source_site || 'Site A',
+    source_station_id: source_station_id || req.user.station_id || 'Site A',
     target_site: target_site || 'All Sites',
+    target_station_id: target_station_id || 'All Sites',
     severity: 'high',
     status: 'new',
     created_at: new Date().toISOString(),

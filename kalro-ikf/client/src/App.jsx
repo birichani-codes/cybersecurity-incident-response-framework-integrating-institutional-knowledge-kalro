@@ -13,6 +13,9 @@ import Users from './pages/Users'
 import PIRDetail from './pages/PIRDetail'
 import DefensiveRoutines from './pages/DefensiveRoutines'
 import GameTheoryConfig from './pages/GameTheoryConfig'
+import SyncDashboard from './pages/SyncDashboard'
+import StationManagement from './pages/StationManagement'
+import Notifications from './pages/Notifications'
 
 const Guard = ({ children, adminOnly=false }) => {
   const { user, isAdmin } = useAuth()
@@ -38,7 +41,10 @@ export default function App() {
             <Route path="search" element={<Search/>}/>
             <Route path="reports" element={<Guard adminOnly><Reports/></Guard>}/>
             <Route path="users" element={<Guard adminOnly><Users/></Guard>}/>
+            <Route path="notifications" element={<Notifications/>}/>
             <Route path="config/game-theory" element={<Guard adminOnly><GameTheoryConfig/></Guard>}/>
+            <Route path="sync-dashboard" element={<Guard adminOnly><SyncDashboard/></Guard>}/>
+            <Route path="station-management" element={<Guard adminOnly><StationManagement/></Guard>}/>
           </Route>
         </Routes>
       </BrowserRouter>

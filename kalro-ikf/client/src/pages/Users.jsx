@@ -4,19 +4,20 @@ import { Loading, fmtDate } from '../components/Shared'
 import { useAuth } from '../context/AuthContext'
 
 const ROLES=['super_admin','analyst','viewer']
+const STATIONS=['Muguga','Kiboko','Mtwapa','Kabati','Site A']
 
 export default function Users() {
   const [users,setUsers]=useState([]), [loading,setLoading]=useState(true)
   const [showModal,setShowModal]=useState(false), [editUser,setEditUser]=useState(null)
-  const [form,setForm]=useState({name:'',email:'',password:'',role:'analyst',department:''})
+  const [form,setForm]=useState({name:'',email:'',password:'',role:'analyst',department:'',station_id:''})
   const [submitting,setSubmitting]=useState(false), [error,setError]=useState(''), [success,setSuccess]=useState('')
   const { user:me }=useAuth()
   const load=()=>{ setLoading(true); api.get('/auth/users').then(r=>setUsers(r.data)).finally(()=>setLoading(false)) }
   useEffect(()=>{ load() },[])
-  const openCreate=()=>{ setEditUser(null); setForm({name:'',email:'',password:'',role:'analyst',department:''}); setError(''); setShowModal(true) }
-  const openEdit=(u)=>{ setEditUser(u); setForm({name:u.name,email:u.email,password:'',role:u.role,department:u.department||''}); setError(''); setShowModal(true) }
+  const openCreate=()=>{ setEditUser(null); setForm({name:'',email:'',password:'',role:'analyst',department:'',station_id:''}); setError(''); setShowModal(true) }
+  const openEdit=(u)=>{ setEditUser(u); setForm({name:u.name,email:u.email,password:'',role:u.role,department:u.department||'',station_id:u.station_id||''}); setError(''); setShowModal(true) }
   const handleSubmit=async(e)=>{ e.preventDefault(); setSubmitting(true); setError('')
-    try{ editUser?await api.put('/auth/users/'+editUser.id,{name:form.name,role:form.role,department:form.department}):await api.post('/auth/users',form); setSuccess(editUser?'Updated.':'Created.'); setShowModal(false); load(); setTimeout(()=>setSuccess(''),3000) }
+    try{ editUser?await api.put('/auth/users/'+editUser.id,{name:form.name,role:form.role,department:form.department,station_id:form.station_id}):await api.post('/auth/users',form); setSuccess(editUser?'Updated.':'Created.'); setShowModal(false); load(); setTimeout(()=>setSuccess(''),3000) }
     catch(err){ setError(err.response?.data?.error||'Failed') }finally{ setSubmitting(false) }
   }
   const handleDelete=async(u)=>{ if(u.id===me.id) return alert('Cannot delete own account.'); if(!confirm('Delete '+u.name+'?')) return; await api.delete('/auth/users/'+u.id); load() }
@@ -49,6 +50,7 @@ export default function Users() {
               <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                 <span style={{fontFamily:'var(--font-mono)',fontSize:11,color:RC[u.role],background:RBG[u.role],padding:'3px 10px',borderRadius:999,border:'1px solid '+RC[u.role]+'30'}}>{u.role.replace('_',' ')}</span>
                 {u.department&&<span className="tag">{u.department}</span>}
+                {u.station_id&&<span className="tag">{u.station_id}</span>}
               </div>
               <div style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:14}}>Joined {fmtDate(u.created_at)}</div>
               <div style={{display:'flex',gap:8}}>
@@ -70,6 +72,10 @@ export default function Users() {
             <div className="form-row">
               <div className="form-group"><label className="form-label">Role *</label><select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))}>{ROLES.map(r=><option key={r} value={r}>{r.replace('_',' ')}</option>)}</select></div>
               <div className="form-group"><label className="form-label">Department</label><input value={form.department} onChange={e=>setForm(f=>({...f,department:e.target.value}))} placeholder="e.g. ICT"/></div>
+              <div className="form-group"><label className="form-label">Station</label><select value={form.station_id} onChange={e=>setForm(f=>({...f,station_id:e.target.value}))}>
+                <option value="">Select station</option>
+                {STATIONS.map(s=><option key={s} value={s}>{s}</option>)}
+              </select></div>
             </div>
             <div className="modal-actions">
               <button type="button" className="btn btn-ghost" onClick={()=>setShowModal(false)}>Cancel</button>

@@ -6,18 +6,19 @@ import { useAuth } from '../context/AuthContext'
 
 const TYPES=['phishing','ransomware','ddos','unauthorized_access','malware','data_exfiltration','other']
 const SEVS=['critical','high','medium','low']
+const STATIONS=['Muguga','Kiboko','Mtwapa','Kabati','Site A']
 
 export default function Incidents() {
   const [incidents,setIncidents]=useState([]), [loading,setLoading]=useState(true)
   const [showModal,setShowModal]=useState(false)
   const [filters,setFilters]=useState({status:'',severity:'',type:'',is_major:''})
-  const [form,setForm]=useState({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false})
+  const [form,setForm]=useState({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false,station_id:'Site A'})
   const [submitting,setSubmitting]=useState(false), [error,setError]=useState('')
   const navigate=useNavigate(), { isAnalyst }=useAuth()
   const [sp]=useSearchParams()
 
   useEffect(()=>{
-    const init={status:sp.get('status')||'',severity:sp.get('severity')||'',type:'',is_major:sp.get('is_major')||''}
+    const init={status:sp.get('status')||'',severity:sp.get('severity')||'',type:'',is_major:sp.get('is_major')||'',station_id:sp.get('station_id')||''}
     setFilters(init)
   },[])
 
@@ -27,6 +28,7 @@ export default function Incidents() {
     if(filters.status) p.set('status',filters.status)
     if(filters.severity) p.set('severity',filters.severity)
     if(filters.type) p.set('type',filters.type)
+    if(filters.station_id) p.set('station_id',filters.station_id)
     if(filters.is_major) p.set('is_major','true')
     api.get('/incidents?'+p).then(r=>setIncidents(r.data)).finally(()=>setLoading(false))
   }
@@ -36,8 +38,8 @@ export default function Incidents() {
     e.preventDefault(); setSubmitting(true); setError('')
     try{
       const ips=form.entities.split(',').map(s=>s.trim()).filter(Boolean)
-      await api.post('/incidents',{...form,entities:ips.length?{ips}:{},is_major:form.is_major})
-      setShowModal(false); setForm({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false}); load()
+      await api.post('/incidents',{...form,entities:ips.length?{ips}:{},is_major:form.is_major,station_id:form.station_id})
+      setShowModal(false); setForm({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false,station_id:'Site A'}); load()
     }catch(err){ setError(err.response?.data?.error||'Failed') }finally{ setSubmitting(false) }
   }
 
@@ -56,6 +58,10 @@ export default function Incidents() {
             {key:'type',opts:['',...TYPES],label:'All Types'}].map(({key,opts,label})=>(
             <select key={key} value={filters[key]} onChange={e=>setFilters(f=>({...f,[key]:e.target.value}))} style={{width:'auto',minWidth:150}}><option value="">{label}</option>{opts.filter(Boolean).map(o=><option key={o} value={o}>{o.replace(/_/g,' ')}</option>)}</select>
           ))}
+          <select value={filters.station_id || ''} onChange={e=>setFilters(f=>({...f,station_id:e.target.value}))} style={{width:'auto',minWidth:150}}>
+            <option value="">All Stations</option>
+            {STATIONS.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
           <button className={filters.is_major?'btn btn-sm btn-primary':'btn btn-sm btn-ghost'} onClick={()=>setFilters(f=>({...f,is_major:f.is_major?'':'true'}))}>★ Major only</button>
           {Object.values(filters).some(Boolean)&&<button className="btn btn-ghost btn-sm" onClick={()=>setFilters({status:'',severity:'',type:'',is_major:''})}>Clear</button>}
         </div>
@@ -64,7 +70,7 @@ export default function Incidents() {
           <div className="card" style={{padding:0,overflow:'hidden'}}>
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Title</th><th>Type</th><th>Severity</th><th>Status</th><th>SLA</th><th>Reported</th></tr></thead>
+                <thead><tr><th>Title</th><th>Type</th><th>Site</th><th>Severity</th><th>Status</th><th>SLA</th><th>Reported</th></tr></thead>
                 <tbody>
                   {incidents.map(inc=>(
                     <tr key={inc.id} onClick={()=>navigate('/incidents/'+inc.id)}>
@@ -75,6 +81,7 @@ export default function Incidents() {
                         </div>
                       </td>
                       <td><span className="tag">{inc.type?.replace(/_/g,' ')}</span></td>
+                      <td style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)'}}>{inc.site||inc.station_id||'Site A'}</td>
                       <td><Badge value={inc.severity}/></td>
                       <td><Badge value={inc.status}/></td>
                       <td><SlaIndicator inc={inc}/></td>
@@ -101,6 +108,9 @@ export default function Incidents() {
               </div>
               <div className="form-group"><label className="form-label">Description</label><textarea rows={4} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="What happened..."/></div>
               <div className="form-group"><label className="form-label">Affected IPs / Hosts</label><input value={form.entities} onChange={e=>setForm(f=>({...f,entities:e.target.value}))} placeholder="192.168.1.1, ws-admin-01"/></div>
+              <div className="form-group"><label className="form-label">Station</label><select value={form.station_id} onChange={e=>setForm(f=>({...f,station_id:e.target.value}))}>
+                {STATIONS.map(s=><option key={s} value={s}>{s}</option>)}
+              </select></div>
               <div className="form-group">
                 <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
                   <input type="checkbox" checked={form.is_major} onChange={e=>setForm(f=>({...f,is_major:e.target.checked}))} style={{width:'auto'}}/>

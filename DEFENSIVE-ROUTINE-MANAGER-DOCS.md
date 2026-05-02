@@ -185,6 +185,39 @@ Each routine defines which **Institutional Enablers** must be active:
 
 ---
 
+## Decentralized Strategic Architecture
+
+### 1. Core Architectural Model: Hub-and-Spoke
+The Defensive Routine Manager supports a Hub-and-Spoke strategic architecture that balances central governance with local operational autonomy.
+- **Hub (KALRO Headquarters):** Serves as the Center of Excellence for policy, approvals, cross-site synchronization, and consolidated reporting.
+- **Spokes (Regional Centres):** Autonomous stations own their local incident data, run site-specific Game Theory payoffs, and manage socio-technical human factors.
+
+### 2. Decentralized Pillar Integration
+#### A. Knowledge-Based View: Distributed Memory
+- **Local Cache:** Each station maintains a local cache of Defensive Routines relevant to its environment.
+- **Global Sync:** Validated local routines are pushed to the Hub and, after Super Admin approval, pulled by other spokes as new global standards.
+
+#### B. Socio-Technical Systems: Regional Enablers
+- **Localized Governance:** Social factors such as training maturity and policy compliance vary by station.
+- **Site-Specific Risk:** The system supports socio-technical heatmaps to show whether stations are struggling with human error or infrastructure gaps.
+
+#### C. Game Theory: Edge-Based Decision Making
+- **Local Payoffs:** The Nash Equilibrium is computed with local weights, so station-specific assets and business impacts determine the best defensive routine.
+
+### 3. Distributed Communication & Notifications
+| FEATURE | LOCAL STATION (SPOKE) | CENTRAL HQ (HUB) |
+|---|---|---|
+| **ALERTING** | Immediate push notifications for local incidents to assigned Analysts. | Escalation alerts for Super Admins only when a local incident crosses a global risk threshold. |
+| **NOTIFICATIONS** | Real-time Knowledge Alerts when a nearby station handles a similar threat. | Automated summaries of network-wide resilience scores. |
+| **COORDINATION** | Peer-to-peer secure messaging for analysts across stations. | Unified command dashboard for multi-site oversight and response. |
+
+### 4. Technical Mapping for Decentralization
+- **Multi-Tenancy Schema:** Include `station_id` for every incident, user, and Defensive Routine in the data model.
+- **Consolidated Reporting (PDF):** Enable both localized station reports and consolidated Headquarters reports.
+- **Synchronization Engine:** Support offline local operation with retry/sync behavior so spokes keep working during network outages and sync with the Hub once connectivity returns.
+
+---
+
 ## Technical Roadmap
 
 ### Module 4: Defensive Routine Manager

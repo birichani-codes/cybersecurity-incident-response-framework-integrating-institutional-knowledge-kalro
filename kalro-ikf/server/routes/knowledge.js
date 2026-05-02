@@ -8,13 +8,15 @@ const defensiveRoutines = require('../logic/defensive-routines');
 const router = express.Router();
 
 router.get('/', authenticate, (req,res) => {
-  const { status, tag, knowledge_type } = req.query;
+  const { status, tag, knowledge_type, station_id, scope } = req.query;
   const users = read('users');
   let f = read('knowledge');
   if (status) f = f.filter(k => k.status===status);
   else f = f.filter(k => k.status!=='superseded');
   if (tag)            f = f.filter(k => k.tags.includes(tag));
   if (knowledge_type) f = f.filter(k => k.knowledge_type===knowledge_type);
+  if (station_id) f = f.filter(k => k.station_id===station_id);
+  if (scope==='local' && req.user.station_id) f = f.filter(k => k.station_id===req.user.station_id);
   res.json(f.sort((a,b)=>b.confidence_score-a.confidence_score).map(k => {
     const c=users.find(u=>u.id===k.contributor_id); return {...k, contributor_name:c?c.name:'Unknown'};
   }));
@@ -32,15 +34,16 @@ router.get('/:id', authenticate, (req,res) => {
 });
 
 router.post('/', authenticate, requireMinRole('analyst'), (req,res) => {
-  const { title, content, tags, incident_id, knowledge_type } = req.body;
+  const { title, content, tags, incident_id, knowledge_type, station_id } = req.body;
   if (!title||!content) return res.status(400).json({ error:'title and content required' });
   const knowledge = read('knowledge');
   const newEntry = { id:'k'+uuid().slice(0,8), title, content, tags:tags||[], incident_id:incident_id||null,
     knowledge_type: knowledge_type||'lessons-learned', contributor_id:req.user.id,
+    station_id: station_id || req.user.station_id || '',
     confidence_score:1.0, version:1, superseded_by:null, status:'active',
     use_count:0, last_used_at:null, created_at:new Date().toISOString() };
   knowledge.push(newEntry); write('knowledge', knowledge);
-  logAction({ userId:req.user.id, action:'CREATE_KNOWLEDGE', targetType:'knowledge', targetId:newEntry.id, metadata:{ title, knowledge_type:newEntry.knowledge_type } });
+  logAction({ userId:req.user.id, action:'CREATE_KNOWLEDGE', targetType:'knowledge', targetId:newEntry.id, metadata:{ title, knowledge_type:newEntry.knowledge_type, station_id:newEntry.station_id } });
   res.status(201).json(newEntry);
 });
 
@@ -86,6 +89,72 @@ router.post('/:id/annotate', authenticate, requireMinRole('analyst'), (req,res) 
   logAction({ userId:req.user.id, action:'ANNOTATE_KNOWLEDGE', targetType:'knowledge', targetId:req.params.id });
   const u = read('users').find(u=>u.id===req.user.id);
   res.status(201).json({ ...newA, user_name:u?u.name:'Unknown' });
+});
+
+router.post('/:id/push-to-hub', authenticate, requireMinRole('analyst'), (req,res) => {
+  const knowledge = read('knowledge');
+  const idx = knowledge.findIndex(k => k.id===req.params.id);
+  if (idx===-1) return res.status(404).json({ error:'Knowledge entry not found' });
+  knowledge[idx].sync_status = 'pending';
+  knowledge[idx].source_station = knowledge[idx].station_id || req.user.station_id || 'Local Site';
+  knowledge[idx].pushed_at = new Date().toISOString();
+  write('knowledge', knowledge);
+  logAction({ userId:req.user.id, action:'PUSH_ROUTINE_TO_HUB', targetType:'knowledge', targetId:req.params.id, metadata:{ station_id:knowledge[idx].station_id } });
+  res.json({ success:true, entry:knowledge[idx] });
+});
+
+router.post('/:id/approve', authenticate, requireMinRole('super_admin'), (req,res) => {
+  const knowledge = read('knowledge');
+  const idx = knowledge.findIndex(k => k.id===req.params.id);
+  if (idx===-1) return res.status(404).json({ error:'Knowledge entry not found' });
+  knowledge[idx].sync_status = 'approved';
+  knowledge[idx].approved_by = req.user.id;
+  knowledge[idx].approved_at = new Date().toISOString();
+  knowledge[idx].global_routine = true;
+  write('knowledge', knowledge);
+  logAction({ userId:req.user.id, action:'APPROVE_GLOBAL_ROUTINE', targetType:'knowledge', targetId:req.params.id, metadata:{ station_id:knowledge[idx].station_id } });
+  
+  // Trigger knowledge alerts for analysts at different stations
+  const users = read('users');
+  const notifs = read('notifications');
+  const entry = knowledge[idx];
+  const stationAnalysts = users.filter(u => 
+    u.station_id && 
+    u.station_id !== entry.station_id && 
+    (u.role === 'analyst' || u.role === 'super_admin')
+  );
+  stationAnalysts.forEach(analyst => {
+    const notification = {
+      id: Date.now().toString() + Math.random(),
+      title: `💡 Knowledge Shared from ${entry.station_id}`,
+      message: `New defensive routine: ${entry.title}`,
+      type: 'knowledge_alert',
+      recipient_id: analyst.id,
+      recipient_station_id: analyst.station_id,
+      severity: 'normal',
+      related_knowledge_id: entry.id,
+      action_url: `/knowledge/${entry.id}`,
+      read: false,
+      created_at: new Date().toISOString(),
+      created_by: 'SYSTEM'
+    };
+    notifs.push(notification);
+  });
+  write('notifications', notifs);
+  
+  res.json({ success:true, entry:knowledge[idx] });
+});
+
+router.get('/sync/pending', authenticate, requireMinRole('super_admin'), (req,res) => {
+  const knowledge = read('knowledge');
+  const pending = knowledge.filter(k => k.sync_status==='pending');
+  res.json(pending);
+});
+
+router.get('/sync/global-routines', authenticate, (req,res) => {
+  const knowledge = read('knowledge');
+  const global = knowledge.filter(k => k.global_routine && k.status==='active');
+  res.json(global);
 });
 
 // ─── NEW: DEFENSIVE ROUTINES ──────────────────────────────────────────────
@@ -145,6 +214,7 @@ router.post('/from-pir/:pirId', authenticate, requireMinRole('super_admin'), (re
     incident_id: pir.incident_id,
     knowledge_type: 'defensive-routine',
     contributor_id: req.user.id,
+    station_id: incident?.station_id || req.body.station_id || req.user.station_id || '',
     confidence_score: 0.75,
     version: 1,
     superseded_by: null,
@@ -224,7 +294,7 @@ router.get('/defensive-routines/list', authenticate, (req,res) => {
 
 router.get('/defensive-routines/metrics', authenticate, (req,res) => {
   try {
-    const metrics = defensiveRoutines.getRoutineMetrics();
+    const metrics = defensiveRoutines.getRoutineMetrics(req.query.station_id);
     res.json(metrics);
   } catch(err) {
     res.status(500).json({ error: err.message });
@@ -233,7 +303,7 @@ router.get('/defensive-routines/metrics', authenticate, (req,res) => {
 
 router.get('/defensive-routines/coverage', authenticate, (req,res) => {
   try {
-    const coverage = defensiveRoutines.analyzeCoverage();
+    const coverage = defensiveRoutines.analyzeCoverage(req.query.station_id);
     res.json(coverage);
   } catch(err) {
     res.status(500).json({ error: err.message });

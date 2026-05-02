@@ -38,6 +38,7 @@ The design follows **NIST Cybersecurity Framework principles**, **SECI Knowledge
 - **Escalation workflow for unknown or unmatched incidents**
 - **Comprehensive audit trail of all system actions**
 - **Integration with logs and threat intelligence feeds**
+- **Real-time notification system** for incidents, escalations, and knowledge sharing alerts
 
 ## Latest Development: Learning Loops & Institutional Metrics
 
@@ -48,6 +49,87 @@ This latest development added a living learning loop to the prototype:
 - **Mean Time to Wisdom (MTTW)** to measure how quickly tacit lessons convert into explicit defensive routines.
 - **Socio-Technical Balance Score** to show whether current risk is shifting toward human/social or technical/system factors.
 - **Shared Knowledge Pulse** for cross-site alerts when a major incident reveals a valuable routine.
+
+## Decentralized Strategic Architecture
+
+### 1. Core Architectural Model: Hub-and-Spoke
+The system is designed as a **Hub-and-Spoke network** to balance central governance with local agility.
+
+- **The Hub (KALRO Headquarters):** Acts as the Center of Excellence. It manages global NIST CSF 2.0 policy standards, cross-site synchronization, and consolidated reporting.
+- **The Spokes (Regional Centres):** Individual stations (e.g., Muguga, Kiboko, Mtwapa) function as autonomous spokes. They own their local data, execute region-specific Game Theory payoffs, and manage local Socio-Technical human factors.
+
+### 2. Decentralized Pillar Integration
+
+#### A. Knowledge-Based View: Distributed Memory
+- **Local Cache:** Each station maintains a local cache of Defensive Routines relevant to its specific environment (for example, drought-tolerant crop research data protection at Kiboko).
+- **Global Sync:** When a local Analyst validates a new routine, it is pushed to the Hub, and once approved by the Super Admin it is pulled by all other spokes as a new global standard.
+
+#### B. Socio-Technical Systems: Regional Enablers
+- **Localized Governance:** The framework recognizes that social factors (training levels, policy compliance) vary by station.
+- **Site-Specific Risk:** Admins can view a Socio-Technical Heatmap to identify which stations are struggling with human errors versus technical infrastructure gaps.
+
+#### C. Game Theory: Edge-Based Decision Making
+- **Local Payoffs:** The Nash Equilibrium is calculated using local weights. For example, the financial payoff for protecting seed breeder assets at Kabati differs from protecting livestock genetic resources at Muguga.
+
+### 3. Distributed Communication & Notifications
+
+**Now Fully Implemented** ✅
+
+The system includes a comprehensive real-time notification system that keeps analysts and administrators informed of critical security events across the network.
+
+#### Notification Types
+
+| TYPE | TRIGGER | RECIPIENT | PURPOSE |
+|---|---|---|---|
+| **Incident Alert** | New incident created at station | Analysts at same station | Immediate awareness of emerging incidents |
+| **Escalation Alert** | Critical or major incident | Super Admins only | Hub visibility into high-risk events requiring central coordination |
+| **Knowledge Alert** | Routine approved for global use | Analysts at other stations | Cross-site knowledge sharing when defensive routines are promoted |
+| **Info** | System events | User-specific | General information and status updates |
+
+#### Notification Features
+
+- **Real-Time Bell Icon:** Users see a badge count of unread notifications
+- **Notification Center:** Click the bell (🔔) to view all notifications with filtering
+- **Full Notifications Page:** Navigate to `/notifications` for comprehensive notification management
+- **Smart Filtering:** Filter by type (all, unread, critical) and search by content
+- **Mark as Read:** Individual and bulk marking for better inbox management
+- **Action Links:** Direct navigation from notification to related incident or knowledge entry
+- **Severity Levels:** Color-coded indicators (critical, high, normal, low) for quick visual scanning
+
+#### Technical Implementation
+
+**Backend** (`server/routes/notifications.js`):
+- GET `/notifications` - Fetch user's notifications (filtered by station)
+- GET `/notifications/unread` - Get unread count
+- GET `/notifications/summary` - Get notification statistics
+- PUT `/notifications/:id/read` - Mark single notification as read
+- PUT `/notifications/read-all` - Bulk mark as read
+- DELETE `/notifications/:id` - Remove notification
+- DELETE `/notifications/clear-old` - Archive old notifications (30+ days)
+- POST `/notifications/incident-alert/:incidentId` - Trigger incident alerts
+- POST `/notifications/knowledge-alert/:knowledgeId` - Trigger knowledge alerts
+
+**Frontend Components**:
+- `NotificationCenter.jsx` - Bell icon with dropdown panel (auto-refreshes every 10 seconds)
+- `Notifications.jsx` - Full-page management with search, filtering, and statistics
+- Integrated in `Layout.jsx` header for global access
+
+#### Notification Flow Example
+
+1. **Analyst at Kiboko** creates a critical incident
+2. **System automatically triggers**:
+   - Alerts to all analysts at Kiboko: "New incident at Kiboko"
+   - Escalation alert to all Super Admins at HQ
+3. **HQ Super Admin** sees badge count increase on notification bell
+4. **Analyst at Muguga** can view incident from notifications (different station)
+5. **Super Admin approves** a defensive routine from Kiboko
+6. **System triggers knowledge alert**: Analysts at Mtwapa, Kabati receive "New routine shared from Kiboko"
+
+
+### 4. Technical Mapping for Decentralization
+- **Multi-Tenancy Schema:** Databases must include a `station_id` for every incident, user, and Defensive Routine.
+- **Consolidated Reporting (PDF):** The system will allow generation of localized PDFs for station managers and consolidated PDFs for KALRO Headquarters.
+- **Synchronization Engine:** Use APIs to ensure high availability. If a station loses internet, it operates on local memory and syncs to the Hub once back online.
 
 ![Key Features](Feature.drawio.png)
 
