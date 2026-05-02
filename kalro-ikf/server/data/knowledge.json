@@ -103,5 +103,50 @@
     "use_count": 0,
     "last_used_at": null,
     "created_at": "2024-08-21T09:00:00Z"
+  },
+  {
+    "id": "k787fa9dd",
+    "title": "Routine: Staff clicked links in emails that mimicked an int",
+    "content": "Rapid domain block. Awareness message sent same day. Users responded quickly to password reset instructions.",
+    "tags": [
+      "phishing"
+    ],
+    "incident_id": "inc1",
+    "knowledge_type": "defensive-routine",
+    "contributor_id": "u1",
+    "confidence_score": 0.75,
+    "version": 1,
+    "superseded_by": null,
+    "status": "active",
+    "use_count": 0,
+    "last_used_at": null,
+    "created_at": "2026-05-01T18:12:32.002Z",
+    "defensive_routine": {
+      "enabled": true,
+      "category": "response-checklist",
+      "primary_goal": "",
+      "payoff_weight": 0.6,
+      "payoff_rating": null,
+      "nist_function": "PR",
+      "associated_scripts": [],
+      "institutional_enablers": [],
+      "socio_technical_focus": "technical",
+      "success_rate": 0.5,
+      "times_applied": 0,
+      "avg_resolution_time": "0h",
+      "applicable_severities": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "applicable_incident_types": [
+        "inc1"
+      ],
+      "prerequisites": [],
+      "estimated_cost": null,
+      "estimated_time_to_resolve": null,
+      "routine_signature": []
+    }
   }
 ]

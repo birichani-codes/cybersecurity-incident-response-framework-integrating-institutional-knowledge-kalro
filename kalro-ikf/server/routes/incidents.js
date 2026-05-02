@@ -4,6 +4,9 @@ const { read, write } = require('../store');
 const { authenticate } = require('../middleware/auth');
 const { requireMinRole } = require('../middleware/rbac');
 const { logAction } = require('./audit');
+const gameTheory = require('../logic/game-theory');
+const sosioTechnical = require('../logic/socio-technical');
+const defensiveRoutines = require('../logic/defensive-routines');
 const router = express.Router();
 
 const SLA_HOURS = { critical:2, high:4, medium:8, low:24 };
@@ -98,6 +101,184 @@ router.delete('/:id', authenticate, requireMinRole('super_admin'), (req,res) => 
   write('incidents', incidents.filter(i => i.id!==req.params.id));
   logAction({ userId:req.user.id, action:'DELETE_INCIDENT', targetType:'incident', targetId:req.params.id });
   res.json({ success:true });
+});
+
+// ─── NEW: SOCIO-TECHNICAL ANALYSIS ────────────────────────────────────────
+
+router.post('/:id/tag-socio-technical', authenticate, requireMinRole('analyst'), (req,res) => {
+  const { technical_factors, social_factors } = req.body;
+  if (!technical_factors || !social_factors) {
+    return res.status(400).json({ error: 'technical_factors and social_factors required' });
+  }
+
+  try {
+    const stsAnalysis = sosioTechnical.analyzeIncident(
+      read('incidents').find(i => i.id === req.params.id),
+      { technical_factors, social_factors }
+    );
+    
+    const incident = sosioTechnical.tagIncidentSTS(req.params.id, stsAnalysis);
+    
+    logAction({
+      userId: req.user.id,
+      action: 'TAG_INCIDENT_STS',
+      targetType: 'incident',
+      targetId: req.params.id,
+      metadata: { root_cause_type: stsAnalysis.root_cause_type, sts_risk_score: stsAnalysis.sts_risk_score }
+    });
+
+    res.json(incident);
+  } catch(err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// ─── NEW: GAME THEORY ANALYSIS ────────────────────────────────────────────
+
+router.post('/:id/calculate-game-theory', authenticate, requireMinRole('analyst'), (req,res) => {
+  const incidents = read('incidents');
+  const incident = incidents.find(i => i.id === req.params.id);
+  
+  if (!incident) return res.status(404).json({ error: 'Incident not found' });
+
+  try {
+    const payoffMatrix = gameTheory.calculatePayoffMatrix(incident, req.body.config);
+    const nashEquilibrium = gameTheory.calculateNashEquilibrium(payoffMatrix, incident);
+    
+    const decision = gameTheory.recordStrategicDecision(
+      req.params.id,
+      { ...nashEquilibrium, payoffMatrix },
+      req.user.id
+    );
+
+    logAction({
+      userId: req.user.id,
+      action: 'CALCULATE_GAME_THEORY',
+      targetType: 'incident',
+      targetId: req.params.id,
+      metadata: { recommendation: nashEquilibrium.recommendedAction, confidence: nashEquilibrium.confidence }
+    });
+
+    res.json({
+      payoff_matrix: payoffMatrix,
+      nash_equilibrium: nashEquilibrium,
+      strategic_decision: decision
+    });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── NEW: GET STRATEGIC DECISIONS ────────────────────────────────────────
+
+router.get('/:id/strategic-decisions', authenticate, (req,res) => {
+  const incident = read('incidents').find(i => i.id === req.params.id);
+  
+  if (!incident) return res.status(404).json({ error: 'Incident not found' });
+
+  const decisions = incident.strategic_decisions || [];
+  const users = read('users');
+
+  const enriched = decisions.map(d => ({
+    ...d,
+    user_name: users.find(u => u.id === d.user_id)?.name || 'Unknown'
+  }));
+
+  res.json(enriched);
+});
+
+// ─── NEW: GET DEFENSIVE ROUTINES ─────────────────────────────────────────
+
+router.get('/:id/defensive-routines', authenticate, (req,res) => {
+  const incident = read('incidents').find(i => i.id === req.params.id);
+  
+  if (!incident) return res.status(404).json({ error: 'Incident not found' });
+
+  const suggestions = defensiveRoutines.suggestRoutines(incident);
+  res.json(suggestions);
+});
+
+// ─── NEW: RECORD ROUTINE APPLICATION ─────────────────────────────────────
+
+router.post('/:id/apply-routine/:knowledgeId', authenticate, requireMinRole('analyst'), (req,res) => {
+  const { outcome } = req.body;
+
+  try {
+    const entry = defensiveRoutines.recordRoutineApplication(
+      req.params.knowledgeId,
+      req.params.id,
+      outcome
+    );
+
+    logAction({
+      userId: req.user.id,
+      action: 'APPLY_DEFENSIVE_ROUTINE',
+      targetType: 'knowledge',
+      targetId: req.params.knowledgeId,
+      metadata: { incident_id: req.params.id, success: outcome?.success }
+    });
+
+    res.json({ success: true, entry });
+  } catch(err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+router.post('/:id/review-routine/:knowledgeId', authenticate, requireMinRole('super_admin'), (req,res) => {
+  const { rating, comments } = req.body;
+  if (rating === undefined || rating === null) {
+    return res.status(400).json({ error: 'rating is required' });
+  }
+
+  try {
+    const entry = defensiveRoutines.reviewRoutineEffectiveness(
+      req.params.id,
+      req.params.knowledgeId,
+      { rating, comments, reviewed_by: req.user.id }
+    );
+
+    const incident = read('incidents').find(i => i.id === req.params.id);
+    if (incident?.is_major) {
+      const alerts = read('knowledge_alerts');
+      alerts.push({
+        id: 'pulse' + Math.random().toString(36).slice(2, 9),
+        incident_id: incident.id,
+        routine_id: entry.id,
+        title: `Knowledge Alert: Major incident ${incident.type} reviewed`,
+        summary: `A major incident was closed and the defensive routine '${entry.title}' was reviewed by super admin ${req.user.name || req.user.id}. Share this learning across sites.`,
+        source_site: incident.site || 'Site A',
+        target_site: 'All Sites',
+        severity: 'high',
+        status: 'new',
+        created_at: new Date().toISOString(),
+        created_by: req.user.id
+      });
+      write('knowledge_alerts', alerts);
+    }
+
+    logAction({
+      userId: req.user.id,
+      action: 'REVIEW_DEFENSIVE_ROUTINE',
+      targetType: 'knowledge',
+      targetId: req.params.knowledgeId,
+      metadata: { incident_id: req.params.id, rating }
+    });
+
+    res.json({ success: true, entry });
+  } catch(err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── NEW: GET RESILIENCE METRICS ─────────────────────────────────────────
+
+router.get('/dashboard/resilience-metrics', authenticate, (req,res) => {
+  try {
+    const metrics = gameTheory.calculateResilienceMetrics();
+    res.json(metrics);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

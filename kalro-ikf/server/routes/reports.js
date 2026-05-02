@@ -2,9 +2,78 @@ const express = require('express');
 const { read } = require('../store');
 const { authenticate } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
+const gameTheory = require('../logic/game-theory');
 const router = express.Router();
 
 const SLA_HOURS = { critical:2, high:4, medium:8, low:24 };
+
+const CSF_MAPPING = {
+  phishing: 'DE',
+  ransomware: 'RS',
+  unauthorized_access: 'PR',
+  ddos: 'DE',
+  malware: 'PR',
+  powershell: 'DE',
+  data_exfiltration: 'PR',
+  insider_threat: 'PR',
+  misconfiguration: 'PR',
+  suspicious_activity: 'DE',
+  credential_theft: 'PR',
+};
+
+const CSF_LABELS = {
+  ID: 'Identify',
+  PR: 'Protect',
+  DE: 'Detect',
+  RS: 'Respond',
+  RC: 'Recover'
+};
+
+function predictAttackerMove(incident) {
+  if (!incident) return null;
+  if (incident.type?.includes('powershell') || incident.description?.toLowerCase().includes('powershell')) {
+    return 'The attacker is likely seeking persistence and credential access via PowerShell abuse.';
+  }
+  if (incident.type === 'unauthorized_access' || incident.title?.toLowerCase().includes('hr database')) {
+    return 'The attacker is likely moving to data exfiltration or privilege escalation from the HR database.';
+  }
+  if (incident.type === 'ransomware') {
+    return 'The attacker is likely attempting lateral movement and file encryption on shared assets.';
+  }
+  return 'The next attacker move is likely reconnaissance or privilege escalation based on current behavior.';
+}
+
+function computeCsfFunctionCounts(incidents) {
+  const counts = { ID:0, PR:0, DE:0, RS:0, RC:0 };
+  incidents.forEach(inc => {
+    const key = CSF_MAPPING[inc.type] || 'DE';
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return counts;
+}
+
+function computeCsfMaturityScore(summary, metrics) {
+  const score = Math.round(
+    (summary.avg_confidence * 100) * 0.35 +
+    (100 - metrics.sla_breach_rate) * 0.25 +
+    summary.pir_completion_rate * 0.25 +
+    (summary.active_knowledge ? Math.min(100, summary.active_knowledge * 4) : 0) * 0.15
+  );
+  const tier = score >= 80 ? 4 : score >= 65 ? 3 : score >= 50 ? 2 : 1;
+  return { score: Math.min(score,100), tier, label: `Tier ${tier}` };
+}
+
+function computePrAcCompliance(incidents) {
+  const protectedCounts = incidents.filter(i => ['unauthorized_access','credential_theft','data_exfiltration','insider_threat'].includes(i.type)).length;
+  const covered = incidents.filter(i => i.related_knowledge?.length > 0 || i.socio_technical?.root_cause_type === 'technical').length;
+  const compliance = incidents.length ? Math.round((covered / incidents.length) * 100) : 0;
+  return { compliance, protectedCounts };
+}
+
+function getKeyIncident(incidents) {
+  return incidents.find(i => i.type === 'unauthorized_access' || i.title?.toLowerCase().includes('hr database')) || incidents[0] || null;
+}
+
 
 function slaDeadline(inc) {
   return inc.sla_deadline || new Date(new Date(inc.created_at).getTime() + (SLA_HOURS[inc.severity]||8)*3600000).toISOString();
@@ -61,15 +130,27 @@ router.get('/dashboard', authenticate, (req,res) => {
   const metrics=computeMetrics(incidents);
   const pir_completion_rate=incidents.filter(i=>i.status==='closed').length?
     Math.round((pirs.length/incidents.filter(i=>i.status==='closed').length)*100):0;
+  const csf_function_counts = computeCsfFunctionCounts(incidents);
+  const csf_maturity = computeCsfMaturityScore({ avg_confidence: avgConf, active_knowledge: active.length, pir_completion_rate }, metrics);
+  const pr_ac = computePrAcCompliance(incidents);
+  const keyIncident = getKeyIncident(incidents);
+  const attacker_prediction = predictAttackerMove(keyIncident);
+  const payoffMatrix = keyIncident ? gameTheory.calculatePayoffMatrix(keyIncident) : null;
+  const nashDecision = payoffMatrix ? gameTheory.calculateNashEquilibrium(payoffMatrix, keyIncident) : null;
   const enrich=(arr,fld)=>arr.map(i=>{const r=users.find(u=>u.id===i[fld]);return{...i,reporter_name:r?r.name:'Unknown'};});
   res.json({
     summary:{ total_incidents:incidents.length, open_incidents:incidents.filter(i=>['open','investigating','escalated'].includes(i.status)).length,
       resolved_incidents:incidents.filter(i=>i.status==='resolved').length, total_knowledge:knowledge.length,
       active_knowledge:active.length, avg_confidence:avgConf, total_users:users.length,
       total_audit_events:logs.length, major_incidents:incidents.filter(i=>i.is_major).length,
-      pir_count:pirs.length, pir_completion_rate },
+      pir_count:pirs.length, pir_completion_rate,
+      csf_maturity_score:csf_maturity, pr_ac_compliance:pr_ac.compliance,
+      attacker_prediction, recommended_countermeasure: nashDecision ? nashDecision.recommendedAction : null,
+      recommended_reasoning: nashDecision ? nashDecision.reasoning : null,
+      recommended_scores: nashDecision ? { isolate: nashDecision.isolateScore, monitor: nashDecision.monitorScore, confidence: nashDecision.confidence } : null
+    },
     by_status:byStatus, by_severity:bySeverity, by_type:byType,
-    coverage_rate:coverageRate(gaps), gaps, uncovered_gaps:gaps.filter(g=>!g.covered),
+    csf_function_counts, coverage_rate:coverageRate(gaps), gaps, uncovered_gaps:gaps.filter(g=>!g.covered),
     weak_entries:active.filter(k=>k.confidence_score<0.6).sort((a,b)=>a.confidence_score-b.confidence_score).slice(0,8).map(k=>{const c=users.find(u=>u.id===k.contributor_id);return{...k,contributor_name:c?c.name:'Unknown'};}),
     escalated_incidents:enrich(incidents.filter(i=>i.status==='escalated').sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,5),'reported_by'),
     major_incidents:enrich(incidents.filter(i=>i.is_major&&!['resolved','closed'].includes(i.status)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,5),'reported_by'),

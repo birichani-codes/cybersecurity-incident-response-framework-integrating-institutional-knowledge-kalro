@@ -5,11 +5,13 @@ const NAV = [
   { to:'/',          label:'Dashboard',     icon:'⬡', exact:true },
   { to:'/incidents', label:'Incidents',      icon:'⚡' },
   { to:'/knowledge', label:'Knowledge Base', icon:'◈' },
+  { to:'/defensive-routines', label:'Defensive Routines', icon:'🎯' },
   { to:'/search',    label:'Search',         icon:'◎' },
 ]
 const ADMIN_NAV = [
   { to:'/reports', label:'Reports', icon:'▤' },
   { to:'/users',   label:'Users',   icon:'◉' },
+  { to:'/config/game-theory', label:'Game Theory Config', icon:'⚖️' },
 ]
 
 export default function Layout() {

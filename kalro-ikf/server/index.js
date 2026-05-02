@@ -10,6 +10,8 @@ app.use('/api/knowledge', require('./routes/knowledge'));
 app.use('/api/search',    require('./routes/search'));
 app.use('/api/reports',   require('./routes/reports'));
 app.use('/api/pir',       require('./routes/pir'));
+app.use('/api/game-theory', require('./routes/game-theory'));
+app.use('/api/alerts', require('./routes/alerts'));
 const { router: auditRouter } = require('./routes/audit');
 app.use('/api/audit', auditRouter);
 app.get('/api/health', (req,res) => res.json({ status:'ok', time: new Date().toISOString() }));

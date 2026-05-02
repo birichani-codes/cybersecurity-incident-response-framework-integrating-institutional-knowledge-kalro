@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { Badge, Tags, ConfidenceBadge, Loading, fmtDate, SlaIndicator, KTypeBadge } from '../components/Shared'
 import { useAuth } from '../context/AuthContext'
+import SocioTechnicalTagger from '../components/SocioTechnicalTagger'
+import GameTheoryAdvisor from '../components/GameTheoryAdvisor'
+import DefensiveRoutinesPanel from '../components/DefensiveRoutinesPanel'
 
 const STATUSES=['open','investigating','escalated','resolved','closed']
 
@@ -45,9 +48,36 @@ export default function IncidentDetail() {
   const { id }=useParams()
   const [incident,setIncident]=useState(null), [loading,setLoading]=useState(true)
   const [updating,setUpdating]=useState(false), [showCapture,setShowCapture]=useState(false), [savedMsg,setSavedMsg]=useState('')
-  const navigate=useNavigate(), { isAnalyst }=useAuth()
+  const [reviewing,setReviewing]=useState(false)
+  const [selectedReview,setSelectedReview]=useState(null)
+  const [reviewScore,setReviewScore]=useState(0.8)
+  const [reviewNotes,setReviewNotes]=useState('')
+  const [reviewError,setReviewError]=useState('')
+  const [reviewSuccess,setReviewSuccess]=useState('')
+  const navigate=useNavigate(), { isAnalyst, user }=useAuth()
 
   const load=()=>{ setLoading(true); api.get('/incidents/'+id).then(r=>setIncident(r.data)).finally(()=>setLoading(false)) }
+
+  const submitRoutineReview = async (routine) => {
+    setReviewing(true)
+    setReviewError('')
+    setReviewSuccess('')
+    try {
+      await api.post(`/incidents/${id}/review-routine/${routine.knowledge_id}`, {
+        rating: reviewScore,
+        comments: reviewNotes
+      })
+      setReviewSuccess('Routine review saved. Payoff values updated.');
+      setSelectedReview(null)
+      setReviewNotes('')
+      load()
+    } catch(err) {
+      setReviewError(err.response?.data?.error || 'Failed to submit review')
+    } finally {
+      setReviewing(false)
+    }
+  }
+
   useEffect(()=>{ load() },[id])
 
   const updateStatus=async(status)=>{ setUpdating(true); await api.put('/incidents/'+id,{status}); if((status==='resolved'||status==='closed')&&isAnalyst) setShowCapture(true); load(); setUpdating(false) }
@@ -169,6 +199,42 @@ export default function IncidentDetail() {
                 </div>
               ))}
             </div>
+
+            {/* NEW: SOCIO-TECHNICAL ANALYSIS */}
+            {isAnalyst && (
+              <div style={{marginTop:20}}>
+                <SocioTechnicalTagger 
+                  incidentId={id} 
+                  initialData={incident.socio_technical} 
+                  onSave={() => load()}
+                />
+              </div>
+            )}
+
+            {/* NEW: GAME THEORY ADVISOR */}
+            {isAnalyst && incident.status !== 'closed' && (
+              <div style={{marginTop:20}}>
+                <GameTheoryAdvisor 
+                  incidentId={id}
+                  incidentSeverity={incident.severity}
+                />
+              </div>
+            )}
+
+            {/* NEW: DEFENSIVE ROUTINES */}
+            {isAnalyst && incident.status !== 'closed' && (
+              <div style={{marginTop:20}}>
+                <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:24}}>
+                  <h3 style={{fontFamily:'var(--font-mono)',fontSize:16,marginBottom:16,color:'var(--text)'}}>
+                    🎯 Defensive Routines
+                  </h3>
+                  <DefensiveRoutinesPanel 
+                    incidentId={id}
+                    onRoutineApplied={() => load()}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -196,6 +262,46 @@ export default function IncidentDetail() {
                     {isCloseable?'View / Create PIR':'Start PIR (post-incident review)'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {incident.status==='closed' && user?.role==='super_admin' && incident.applied_defensive_routines?.length > 0 && (
+              <div className="card" style={{marginBottom:16}}>
+                <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:12}}>Routine Review</div>
+                <div style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>Super Admin review is required after incident closure to update payoff and institutional knowledge ratings.</div>
+                {reviewError && <div className="alert alert-error" style={{marginBottom:12}}>{reviewError}</div>}
+                {reviewSuccess && <div className="alert alert-success" style={{marginBottom:12}}>{reviewSuccess}</div>}
+                {incident.applied_defensive_routines.map(routine => (
+                  <div key={routine.knowledge_id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:8}}>
+                      <div>
+                        <div style={{fontWeight:600,color:'var(--text)'}}>{routine.title}</div>
+                        <div style={{fontSize:12,color:'var(--text3)'}}>Applied at {new Date(routine.applied_at).toLocaleString('en-KE')}</div>
+                      </div>
+                      <button className="btn btn-sm btn-ghost" onClick={()=>{ setSelectedReview(routine); setReviewScore(0.8); setReviewNotes(''); setReviewError(''); setReviewSuccess('') }}>
+                        Rate this routine
+                      </button>
+                    </div>
+                    {selectedReview?.knowledge_id === routine.knowledge_id && (
+                      <div style={{padding:'12px',background:'var(--bg3)',borderRadius:8}}>
+                        <div style={{marginBottom:10}}>
+                          <label style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',display:'block',marginBottom:4}}>Effectiveness rating</label>
+                          <input type="range" min="0" max="1" step="0.05" value={reviewScore} onChange={e=>setReviewScore(Number(e.target.value))} style={{width:'100%'}} />
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--text3)',marginTop:4}}>
+                            <span>Poor</span><span>Excellent</span>
+                          </div>
+                        </div>
+                        <div className="form-group" style={{marginBottom:10}}>
+                          <label style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',display:'block',marginBottom:4}}>Comments (optional)</label>
+                          <textarea rows={3} value={reviewNotes} onChange={e=>setReviewNotes(e.target.value)} style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)'}} />
+                        </div>
+                        <button className="btn btn-primary btn-sm" disabled={reviewing} onClick={()=>submitRoutineReview(routine)} style={{width:'100%'}}>
+                          {reviewing ? 'Saving...' : 'Save review'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
             <div className="card">

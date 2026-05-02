@@ -11,6 +11,8 @@ import Search from './pages/Search'
 import Reports from './pages/Reports'
 import Users from './pages/Users'
 import PIRDetail from './pages/PIRDetail'
+import DefensiveRoutines from './pages/DefensiveRoutines'
+import GameTheoryConfig from './pages/GameTheoryConfig'
 
 const Guard = ({ children, adminOnly=false }) => {
   const { user, isAdmin } = useAuth()
@@ -32,9 +34,11 @@ export default function App() {
             <Route path="incidents/:id/pir" element={<PIRDetail/>}/>
             <Route path="knowledge" element={<Knowledge/>}/>
             <Route path="knowledge/:id" element={<KnowledgeDetail/>}/>
+            <Route path="defensive-routines" element={<DefensiveRoutines/>}/>
             <Route path="search" element={<Search/>}/>
             <Route path="reports" element={<Guard adminOnly><Reports/></Guard>}/>
             <Route path="users" element={<Guard adminOnly><Users/></Guard>}/>
+            <Route path="config/game-theory" element={<Guard adminOnly><GameTheoryConfig/></Guard>}/>
           </Route>
         </Routes>
       </BrowserRouter>

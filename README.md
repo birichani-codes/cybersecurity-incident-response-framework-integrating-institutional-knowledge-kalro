@@ -39,6 +39,16 @@ The design follows **NIST Cybersecurity Framework principles**, **SECI Knowledge
 - **Comprehensive audit trail of all system actions**
 - **Integration with logs and threat intelligence feeds**
 
+## Latest Development: Learning Loops & Institutional Metrics
+
+This latest development added a living learning loop to the prototype:
+- **Closed-incident review loop** for Super Admins to rate routine effectiveness after a report or PIR.
+- **Dynamic payoff updates** so low-performing routines degrade in future recommendation likelihood.
+- **Knowledge Utilization Rate (KUR)** to track how often institutional memory is used to resolve incidents.
+- **Mean Time to Wisdom (MTTW)** to measure how quickly tacit lessons convert into explicit defensive routines.
+- **Socio-Technical Balance Score** to show whether current risk is shifting toward human/social or technical/system factors.
+- **Shared Knowledge Pulse** for cross-site alerts when a major incident reveals a valuable routine.
+
 ![Key Features](Feature.drawio.png)
 
 ---

@@ -29,9 +29,13 @@ function ConfPip({ score }) {
 }
 
 export default function Dashboard() {
-  const [data,setData]=useState(null), [loading,setLoading]=useState(true)
+  const [data,setData]=useState(null), [loading,setLoading]=useState(true), [resilience,setResilience]=useState(null), [pulseAlerts,setPulseAlerts]=useState([])
   const navigate=useNavigate(), { user }=useAuth()
-  useEffect(()=>{ api.get('/reports/dashboard').then(r=>setData(r.data)).finally(()=>setLoading(false)) },[])
+  useEffect(()=>{ 
+    api.get('/reports/dashboard').then(r=>setData(r.data)).finally(()=>setLoading(false));
+    api.get('/incidents/dashboard/resilience-metrics').then(r=>setResilience(r.data)).catch(()=>{});
+    api.get('/alerts/knowledge-pulse').then(r=>setPulseAlerts(r.data)).catch(()=>{});
+  },[])
   if (loading) return <Loading/>
   const { summary,by_severity,by_status,coverage_rate,uncovered_gaps,weak_entries,
           escalated_incidents,major_incidents,sla_breached,recent_incidents,top_knowledge,metrics } = data
@@ -100,6 +104,43 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div className="card" style={{marginBottom:20,borderLeft:'3px solid var(--blue)'}}>
+          <div className="section-header"><h2>NIST CSF & Strategy</h2></div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>CSF Maturity</div>
+              <div style={{fontSize:24,fontWeight:700,color:'var(--blue)',marginBottom:6}}>{summary.csf_maturity_score?.score ?? '—'}</div>
+              <div style={{fontSize:12,color:'var(--text2)'}}>{summary.csf_maturity_score?.label ?? 'Evaluating'}</div>
+            </div>
+            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Protect (PR.AC) Compliance</div>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <div style={{flex:1,height:8,background:'var(--bg4)',borderRadius:4,overflow:'hidden'}}><div style={{width:(summary.pr_ac_compliance||0)+'%',height:'100%',background:'var(--blue)',borderRadius:4}}/></div>
+                <span style={{fontFamily:'var(--font-mono)',fontSize:12}}>{summary.pr_ac_compliance||0}%</span>
+              </div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Coverage for critical access/control incidents</div>
+            </div>
+            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Recommended Action</div>
+              <div style={{fontSize:18,fontWeight:700,color:'var(--kalro-red)'}}>{summary.recommended_countermeasure || 'Review'}</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginTop:8}}>{summary.recommended_reasoning || 'No strategy available'}</div>
+            </div>
+            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Threat Intent</div>
+              <div style={{fontSize:14,color:'var(--text)'}}>{summary.attacker_prediction || 'Unable to infer attacker intent.'}</div>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginTop:16}}>
+            {Object.entries(data.csf_function_counts || {}).map(([key,value]) => (
+              <div key={key} style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:12,textAlign:'center'}}>
+                <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:4}}>{key}</div>
+                <div style={{fontSize:20,fontWeight:700,color:'var(--text)'}}>{value}</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>{key === 'PR' ? 'Protect' : key === 'DE' ? 'Detect' : key === 'RS' ? 'Respond' : key === 'ID' ? 'Identify' : 'Recover'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Coverage bar */}
         <div className="card" style={{marginBottom:20,borderLeft:'3px solid '+(coverage_rate>=80?'var(--kalro-green)':coverage_rate>=50?'var(--yellow)':'var(--kalro-red)')}}>
           <div className="flex-between" style={{marginBottom:10}}>
@@ -111,6 +152,108 @@ export default function Dashboard() {
           </div>
           <CoverageBar rate={coverage_rate}/>
         </div>
+
+        {/* NEW: RESILIENCE METRICS SECTION */}
+        {resilience && (
+          <div className="card" style={{marginBottom:20,background:'linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%)',borderLeft:'3px solid var(--kalro-green)'}}>
+            <div style={{marginBottom:16}}>
+              <div style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>🛡️ Organizational Resilience Score</div>
+              <div style={{fontSize:32,fontWeight:700,color:'var(--kalro-green)',fontFamily:'var(--font-mono)',marginBottom:8}}>
+                {resilience.resilience_score.toFixed(1)}
+              </div>
+              <div style={{fontSize:13,color:'var(--text2)',lineHeight:1.6}}>
+                Based on SLA compliance, knowledge utilization, socio-technical complexity, and defensive routine effectiveness
+              </div>
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))',gap:12}}>
+              <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:12}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:4}}>SLA Compliance</div>
+                <div style={{fontSize:18,fontWeight:700,color:resilience.sla_breach_rate<10?'var(--kalro-green)':'var(--yellow)',fontFamily:'var(--font-mono)'}}>
+                  {resilience.sla_breach_rate}
+                </div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>Breach rate</div>
+              </div>
+
+              <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:12}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:4}}>Knowledge Utilization Rate</div>
+                <div style={{fontSize:18,fontWeight:700,color:'var(--accent)',fontFamily:'var(--font-mono)'}}>
+                  {resilience.knowledge_utilization_rate || resilience.knowledge_utilization}
+                </div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>Resolved with institutional memory</div>
+              </div>
+
+              <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:12}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:4}}>Mean Time to Wisdom</div>
+                <div style={{fontSize:18,fontWeight:700,color:'var(--kalro-green)',fontFamily:'var(--font-mono)'}}>
+                  {resilience.mean_time_to_wisdom}
+                </div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>Tacit-to-explicit conversion</div>
+              </div>
+
+              <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:12}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:4}}>Routine Success Rate</div>
+                <div style={{fontSize:18,fontWeight:700,color:'var(--kalro-green)',fontFamily:'var(--font-mono)'}}>
+                  {resilience.routine_success_rate}
+                </div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>Defensive routines</div>
+              </div>
+
+              <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:12}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:4}}>Socio-Technical Balance</div>
+                <div style={{fontSize:18,fontWeight:700,color:'var(--text)',fontFamily:'var(--font-mono)'}}>
+                  {resilience.socio_technical_balance_score ?? 50}
+                </div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>Human vs. Technical risk</div>
+              </div>
+            </div>
+
+            <div style={{marginTop:16,padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10}}>
+              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:8}}>Socio-Technical Heatmap</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <div style={{padding:12,background:'var(--bg3)',borderRadius:8}}>
+                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Technical</div>
+                  <div style={{fontSize:20,fontWeight:700,color:'var(--blue)'}}>{resilience.socio_technical_balance?.technical ?? '50'}%</div>
+                </div>
+                <div style={{padding:12,background:'var(--bg3)',borderRadius:8}}>
+                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Social</div>
+                  <div style={{fontSize:20,fontWeight:700,color:'var(--kalro-red)'}}>{resilience.socio_technical_balance?.social ?? '50'}%</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+              <button className="btn btn-ghost btn-sm" onClick={()=>navigate('/defensive-routines')} style={{marginRight:8}}>
+                📚 View Routines
+              </button>
+              {user?.role==='super_admin' && (
+                <button className="btn btn-ghost btn-sm" onClick={()=>navigate('/config/game-theory')}>
+                  ⚖️ Game Theory Config
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {pulseAlerts.length > 0 && (
+          <div className="card" style={{marginBottom:20,borderLeft:'3px solid var(--kalro-red)'}}>
+            <div className="section-header"><h2>Knowledge Pulse</h2></div>
+            {pulseAlerts.slice(0, 3).map(alert => (
+              <div key={alert.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                  <div>
+                    <div style={{fontWeight:600,color:'var(--text)'}}>{alert.title}</div>
+                    <div style={{fontSize:12,color:'var(--text3)'}}>{alert.summary}</div>
+                  </div>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--kalro-red)',background:'var(--kalro-red-glow)',padding:'4px 8px',borderRadius:4}}>{alert.source_site}</span>
+                </div>
+              </div>
+            ))}
+            {pulseAlerts.length > 3 && (
+              <div style={{padding:'10px 0',fontSize:12,color:'var(--text3)'}}>+{pulseAlerts.length - 3} more knowledge pulses available</div>
+            )}
+          </div>
+        )}
 
         {/* Row 2: gaps + weak + metrics */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
