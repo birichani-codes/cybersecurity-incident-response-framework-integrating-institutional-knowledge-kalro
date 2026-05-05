@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
-import { Badge, Tags, ConfidenceBadge, Loading, fmtDate, SlaIndicator, KTypeBadge } from '../components/Shared'
+import { Badge, Tags, ConfidenceBadge, Loading, fmtDate, fmtDateTime, SlaIndicator, KTypeBadge } from '../components/Shared'
 import { useAuth } from '../context/AuthContext'
 import SocioTechnicalTagger from '../components/SocioTechnicalTagger'
 import GameTheoryAdvisor from '../components/GameTheoryAdvisor'
@@ -54,9 +54,109 @@ export default function IncidentDetail() {
   const [reviewNotes,setReviewNotes]=useState('')
   const [reviewError,setReviewError]=useState('')
   const [reviewSuccess,setReviewSuccess]=useState('')
+  const [comments,setComments]=useState([])
+  const [commentsLoading,setCommentsLoading]=useState(false)
+  const [newComment,setNewComment]=useState('')
+  const [linkedIncidents,setLinkedIncidents]=useState([])
+  const [linkTarget,setLinkTarget]=useState('')
+  const [watchers,setWatchers]=useState([])
+  const [watcherEmail,setWatcherEmail]=useState('')
+  const [activity,setActivity]=useState([])
+  const [activityLoading,setActivityLoading]=useState(true)
+  const [collabStatus,setCollabStatus]=useState('')
+  const [collabError,setCollabError]=useState('')
   const navigate=useNavigate(), { isAnalyst, user }=useAuth()
 
-  const load=()=>{ setLoading(true); api.get('/incidents/'+id).then(r=>setIncident(r.data)).finally(()=>setLoading(false)) }
+  const load=async()=>{
+    setLoading(true)
+    setCollabError('')
+    try {
+      const res = await api.get('/incidents/'+id)
+      setIncident(res.data)
+      setComments(res.data.comments || [])
+      setLinkedIncidents(res.data.linked_incidents || [])
+      setWatchers(res.data.watchers || [])
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to load incident')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadActivity = async () => {
+    setActivityLoading(true)
+    try {
+      const res = await api.get(`/incidents/${id}/activity`)
+      setActivity(res.data || [])
+    } catch {
+      setActivity([])
+    } finally {
+      setActivityLoading(false)
+    }
+  }
+
+  const submitComment = async () => {
+    if (!newComment.trim()) {
+      setCollabError('Add a war room update before sharing.')
+      return
+    }
+    setCollabError('')
+    setCollabStatus('Posting comment...')
+    try {
+      const res = await api.post(`/incidents/${id}/comments`, { message: newComment.trim() })
+      setComments(prev => [res.data, ...prev])
+      setNewComment('')
+      setCollabStatus('Comment posted.')
+      await loadActivity()
+      await load()
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to post comment')
+    } finally {
+      setCollabStatus('')
+    }
+  }
+
+  const addLink = async () => {
+    if (!linkTarget.trim()) {
+      setCollabError('Enter an incident ID to link.')
+      return
+    }
+    setCollabError('')
+    setCollabStatus('Linking incident...')
+    try {
+      const res = await api.post(`/incidents/${id}/link`, { target_incident_id: linkTarget.trim() })
+      setLinkedIncidents(res.data.linked_incidents || [])
+      setLinkTarget('')
+      setCollabStatus('Incident linked.')
+      await loadActivity()
+      await load()
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to link incident')
+    } finally {
+      setCollabStatus('')
+    }
+  }
+
+  const addWatcher = async () => {
+    if (!watcherEmail.trim()) {
+      setCollabError('Enter a stakeholder email to add.')
+      return
+    }
+    setCollabError('')
+    setCollabStatus('Adding watcher...')
+    try {
+      const res = await api.post(`/incidents/${id}/watchers`, { email: watcherEmail.trim() })
+      setWatchers(prev => [res.data.watcher, ...prev])
+      setWatcherEmail('')
+      setCollabStatus('Watcher added.')
+      await loadActivity()
+      await load()
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to add watcher')
+    } finally {
+      setCollabStatus('')
+    }
+  }
 
   const submitRoutineReview = async (routine) => {
     setReviewing(true)
@@ -78,9 +178,9 @@ export default function IncidentDetail() {
     }
   }
 
-  useEffect(()=>{ load() },[id])
+  useEffect(()=>{ load(); loadActivity(); },[id])
 
-  const updateStatus=async(status)=>{ setUpdating(true); await api.put('/incidents/'+id,{status}); if((status==='resolved'||status==='closed')&&isAnalyst) setShowCapture(true); load(); setUpdating(false) }
+  const updateStatus=async(status)=>{ setUpdating(true); await api.put('/incidents/'+id,{status}); if((status==='resolved'||status==='closed')&&isAnalyst) setShowCapture(true); load(); loadActivity(); setUpdating(false) }
   const handleCaptured=()=>{ setShowCapture(false); setSavedMsg('Knowledge entry saved.'); load(); setTimeout(()=>setSavedMsg(''),4000) }
 
   if(loading) return <Loading/>
@@ -200,8 +300,96 @@ export default function IncidentDetail() {
               ))}
             </div>
 
-            {/* NEW: SOCIO-TECHNICAL ANALYSIS */}
-            {isAnalyst && (
+            <div className="card" style={{marginTop:20}}>
+              <div className="section-header"><h2>Incident War Room</h2></div>
+              <div style={{marginBottom:16,fontSize:13,color:'var(--text2)'}}>Capture operational collaboration updates, linked incidents, and stakeholder watchers in one place.</div>
+              {collabError && <div className="alert alert-error" style={{marginBottom:12}}>{collabError}</div>}
+              {collabStatus && <div className="alert alert-info" style={{marginBottom:12}}>{collabStatus}</div>}
+              <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12}}>
+                <div>
+                  <label style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:6,display:'block'}}>War Room Comment</label>
+                  <textarea rows={4} value={newComment} onChange={e=>setNewComment(e.target.value)} style={{width:'100%',padding:12,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)'}} placeholder="Share updates, blockers, actions taken, or handover notes."></textarea>
+                  <button className="btn btn-primary btn-sm" style={{marginTop:10}} onClick={submitComment}>Post update</button>
+                  <div style={{marginTop:16}}>
+                    <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:8}}>Recent Comments</div>
+                    {comments.length === 0 ? (
+                      <div style={{fontSize:13,color:'var(--text2)'}}>No war room comments yet. Use the field above to keep the team in sync.</div>
+                    ) : comments.slice(0,4).map(comment => (
+                      <div key={comment.id} style={{marginBottom:12,padding:12,background:'var(--bg3)',borderRadius:10,border:'1px solid var(--border)'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',gap:8,marginBottom:6}}>
+                          <span style={{fontWeight:600,color:'var(--text)'}}>{comment.user_name}</span>
+                          <span style={{fontSize:11,color:'var(--text3)'}}>{fmtDateTime(comment.created_at)}</span>
+                        </div>
+                        <div style={{fontSize:13,color:'var(--text2)',whiteSpace:'pre-wrap'}}>{comment.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  <div>
+                    <label style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:6,display:'block'}}>Link Incident</label>
+                    <div style={{display:'flex',gap:8}}>
+                      <input value={linkTarget} onChange={e=>setLinkTarget(e.target.value)} placeholder="Incident ID" style={{flex:1,padding:10,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)'}} />
+                      <button className="btn btn-ghost btn-sm" onClick={addLink}>Link</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)',marginBottom:6,display:'block'}}>Add Watcher</label>
+                    <div style={{display:'flex',gap:8}}>
+                      <input value={watcherEmail} onChange={e=>setWatcherEmail(e.target.value)} placeholder="Email address" style={{flex:1,padding:10,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)'}} />
+                      <button className="btn btn-ghost btn-sm" onClick={addWatcher}>Add</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style={{marginTop:16}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                  <div style={{padding:12,background:'var(--bg3)',borderRadius:12,border:'1px solid var(--border)'}}>
+                    <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:8}}>Linked Incidents</div>
+                    {linkedIncidents.length === 0 ? (
+                      <div style={{fontSize:13,color:'var(--text2)'}}>No linked incidents yet.</div>
+                    ) : linkedIncidents.map(link => (
+                      <div key={link.id} style={{marginBottom:10,paddingBottom:10,borderBottom:'1px solid var(--border)'}}>
+                        <div style={{fontWeight:600,color:'var(--text)'}}>{link.id}</div>
+                        <div style={{fontSize:12,color:'var(--text3)'}}>{link.title || 'No title available'}</div>
+                        <div style={{marginTop:6,fontSize:11,color:'var(--text3)'}}>Status: {link.status || 'unknown'} · Severity: {link.severity || 'unknown'}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{padding:12,background:'var(--bg3)',borderRadius:12,border:'1px solid var(--border)'}}>
+                    <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:8}}>Stakeholders Watching</div>
+                    {watchers.length===0 ? (
+                      <div style={{fontSize:13,color:'var(--text2)'}}>No watchers assigned.</div>
+                    ) : watchers.map((watch, idx) => (
+                      <div key={idx} style={{marginBottom:10,paddingBottom:10,borderBottom: idx < watchers.length-1 ? '1px solid var(--border)' : 'none'}}>
+                        <div style={{fontWeight:600,color:'var(--text)'}}>{watch.user_name || watch.email || 'Watcher'}</div>
+                        <div style={{fontSize:12,color:'var(--text3)'}}>{watch.role || 'stakeholder'} · {watch.email || watch.user_id}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{marginTop:16}}>
+                <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:8}}>Recent Activity</div>
+                {activityLoading ? (
+                  <div style={{fontSize:13,color:'var(--text2)'}}>Loading activity…</div>
+                ) : activity.length===0 ? (
+                  <div style={{fontSize:13,color:'var(--text2)'}}>No activity captured yet.</div>
+                ) : activity.slice(0,5).map(item => (
+                  <div key={item.id || item.created_at} style={{marginBottom:12,padding:10,background:'var(--bg2)',borderRadius:10}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,marginBottom:6}}>
+                      <span style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{item.user_name}</span>
+                      <span style={{fontSize:11,color:'var(--text3)'}}>{fmtDateTime(item.created_at)}</span>
+                    </div>
+                    <div style={{fontSize:12,color:'var(--text2)'}}>{item.action.replace(/_/g,' ')}</div>
+                    {item.metadata?.comment_id && <div style={{fontSize:11,color:'var(--text3)',marginTop:6}}>Comment added</div>}
+                    {item.metadata?.linked_incident_id && <div style={{fontSize:11,color:'var(--text3)',marginTop:6}}>Linked incident {item.metadata.linked_incident_id}</div>}
+                    {item.metadata?.watcher_id && <div style={{fontSize:11,color:'var(--text3)',marginTop:6}}>Watcher added ({item.metadata.watcher_id})</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
               <div style={{marginTop:20}}>
                 <SocioTechnicalTagger 
                   incidentId={id} 

@@ -5,6 +5,7 @@ const { authenticate } = require('../middleware/auth');
 const { requireMinRole } = require('../middleware/rbac');
 const { logAction } = require('./audit');
 const defensiveRoutines = require('../logic/defensive-routines');
+const email = require('../logic/email');
 const router = express.Router();
 
 router.get('/', authenticate, (req,res) => {
@@ -141,6 +142,20 @@ router.post('/:id/approve', authenticate, requireMinRole('super_admin'), (req,re
     notifs.push(notification);
   });
   write('notifications', notifs);
+
+  const knowledgeAnalysts = read('users').filter(u => u.role === 'analyst');
+  knowledgeAnalysts.forEach(async analyst => {
+    try {
+      await email.sendSystemEmail({
+        to: analyst.email,
+        subject: `KALRO Knowledge Update: New Institutional Memory Asset Approved`,
+        html: email.buildRoutineApprovalEmail(entry, req.user),
+        station_id: entry.station_id || 'HQ'
+      });
+    } catch (err) {
+      console.error('Failed to send knowledge approval email', err);
+    }
+  });
   
   res.json({ success:true, entry:knowledge[idx] });
 });

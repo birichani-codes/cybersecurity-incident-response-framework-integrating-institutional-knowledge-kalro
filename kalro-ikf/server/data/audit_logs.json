@@ -1,5 +1,38 @@
 [
   {
+    "id": "log1e8e12ef",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-05T04:20:02.128Z"
+  },
+  {
+    "id": "log101cfa86",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-04T14:48:58.920Z"
+  },
+  {
+    "id": "log1c1b3cbb",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-03T18:37:00.181Z"
+  },
+  {
     "id": "logb18ab039",
     "user_id": "u1",
     "action": "LOGIN",

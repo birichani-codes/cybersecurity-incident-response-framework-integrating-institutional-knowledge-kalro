@@ -7,6 +7,7 @@ const { logAction } = require('./audit');
 const gameTheory = require('../logic/game-theory');
 const sosioTechnical = require('../logic/socio-technical');
 const defensiveRoutines = require('../logic/defensive-routines');
+const email = require('../logic/email');
 const router = express.Router();
 
 const SLA_HOURS = { critical:2, high:4, medium:8, low:24 };
@@ -16,7 +17,20 @@ function computeSlaDeadline(severity, created_at) {
   return new Date(new Date(created_at).getTime() + h*60*60*1000).toISOString();
 }
 
-function enrichIncident(inc, users, knowledge) {
+function normalizeWatchers(incident, users) {
+  return (incident.watchers || []).map(w => {
+    const entry = typeof w === 'string' ? { user_id: w } : w;
+    const user = entry.user_id ? users.find(u => u.id === entry.user_id) : users.find(u => u.email === entry.email);
+    return {
+      user_id: entry.user_id || user?.id || null,
+      email: entry.email || user?.email || null,
+      user_name: user?.name || entry.name || 'Unknown',
+      role: entry.role || user?.role || 'stakeholder'
+    };
+  });
+}
+
+function enrichIncident(inc, users, knowledge, incidents) {
   const r = users.find(u => u.id===inc.reported_by);
   const a = users.find(u => u.id===inc.assigned_to);
   const related = knowledge ? knowledge.filter(k =>
@@ -28,6 +42,10 @@ function enrichIncident(inc, users, knowledge) {
   const sla_deadline = inc.sla_deadline || computeSlaDeadline(inc.severity, inc.created_at);
   const sla_breached = !['resolved','closed'].includes(inc.status) && new Date() > new Date(sla_deadline);
   const sla_minutes_remaining = Math.round((new Date(sla_deadline)-new Date())/60000);
+  const linked_incidents = (inc.linked_incidents || []).map(linkId => {
+    const linked = incidents?.find(i => i.id === linkId);
+    return linked ? { id: linked.id, title: linked.title, status: linked.status, severity: linked.severity } : { id: linkId };
+  });
   return {
     ...inc,
     site: inc.station_id || 'Site A',
@@ -36,6 +54,9 @@ function enrichIncident(inc, users, knowledge) {
     sla_minutes_remaining,
     reporter_name:r?r.name:'Unknown',
     assignee_name:a?a.name:'Unassigned',
+    comments: inc.comments || [],
+    linked_incidents,
+    watchers: normalizeWatchers(inc, users),
     ...(related!==undefined?{related_knowledge:related}:{})
   };
 }
@@ -69,9 +90,10 @@ router.get('/stats', authenticate, (req,res) => {
 });
 
 router.get('/:id', authenticate, (req,res) => {
-  const inc = read('incidents').find(i => i.id===req.params.id);
+  const incidents = read('incidents');
+  const inc = incidents.find(i => i.id===req.params.id);
   if (!inc) return res.status(404).json({ error:'Incident not found' });
-  res.json(enrichIncident(inc, read('users'), read('knowledge')));
+  res.json(enrichIncident(inc, read('users'), read('knowledge'), incidents));
 });
 
 router.post('/', authenticate, requireMinRole('analyst'), (req,res) => {
@@ -133,7 +155,32 @@ router.post('/', authenticate, requireMinRole('analyst'), (req,res) => {
       notifs.push(notification);
     });
   }
+
   write('notifications', notifs);
+
+  if (newInc.is_major || newInc.severity === 'critical') {
+    const payoffMatrix = gameTheory.calculatePayoffMatrix(newInc);
+    const nashEquilibrium = gameTheory.calculateNashEquilibrium(payoffMatrix, newInc);
+    const suggestedRoutines = defensiveRoutines.suggestRoutines(newInc) || { top_recommendations: [] };
+    const routine = (suggestedRoutines.top_recommendations || [])[0];
+
+    const incidentAnalysts = users.filter(u =>
+      u.station_id === newInc.station_id && u.role === 'analyst'
+    );
+
+    incidentAnalysts.forEach(async analyst => {
+      try {
+        await email.sendSystemEmail({
+          to: analyst.email,
+          subject: `KALRO Major Incident Alert: ${newInc.title}`,
+          html: email.buildMajorIncidentEmail(newInc, nashEquilibrium, routine),
+          station_id: newInc.station_id
+        });
+      } catch (err) {
+        console.error('Failed to send incident email', err);
+      }
+    });
+  }
   
   res.status(201).json(newInc);
 });
@@ -151,6 +198,166 @@ router.put('/:id', authenticate, requireMinRole('analyst'), (req,res) => {
   write('incidents', incidents);
   logAction({ userId:req.user.id, action:'UPDATE_INCIDENT', targetType:'incident', targetId:req.params.id, metadata:{ status:incidents[idx].status } });
   res.json(incidents[idx]);
+});
+
+router.get('/:id/comments', authenticate, (req, res) => {
+  const incident = read('incidents').find(i => i.id === req.params.id);
+  if (!incident) return res.status(404).json({ error: 'Incident not found' });
+  res.json(incident.comments || []);
+});
+
+router.post('/:id/comments', authenticate, (req, res) => {
+  const { message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'message is required' });
+
+  const incidents = read('incidents');
+  const idx = incidents.findIndex(i => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Incident not found' });
+
+  const comment = {
+    id: 'c' + uuid().slice(0, 8),
+    user_id: req.user.id,
+    user_name: req.user.name || 'Unknown',
+    role: req.user.role,
+    message: message.trim(),
+    created_at: new Date().toISOString()
+  };
+
+  incidents[idx].comments = incidents[idx].comments || [];
+  incidents[idx].comments.unshift(comment);
+  incidents[idx].updated_at = new Date().toISOString();
+  write('incidents', incidents);
+
+  logAction({
+    userId: req.user.id,
+    action: 'ADD_INCIDENT_COMMENT',
+    targetType: 'incident',
+    targetId: req.params.id,
+    metadata: { comment_id: comment.id }
+  });
+
+  const users = read('users');
+  const notifications = read('notifications');
+  const recipients = new Set();
+  const incident = incidents[idx];
+  if (incident.assigned_to && incident.assigned_to !== req.user.id) recipients.add(incident.assigned_to);
+  (incident.watchers || []).forEach(w => {
+    const id = typeof w === 'string' ? w : w.user_id;
+    if (id && id !== req.user.id) recipients.add(id);
+  });
+
+  recipients.forEach(recipientId => {
+    const notification = {
+      id: Date.now().toString() + Math.random(),
+      title: `Update on Incident ${incident.id}`,
+      message: `${req.user.name || 'A collaborator'} added a war room comment.`,
+      type: 'incident_comment',
+      recipient_id: recipientId,
+      severity: 'normal',
+      related_incident_id: incident.id,
+      action_url: `/incidents/${incident.id}`,
+      read: false,
+      created_at: new Date().toISOString(),
+      created_by: 'SYSTEM'
+    };
+    notifications.push(notification);
+  });
+  write('notifications', notifications);
+
+  res.status(201).json(comment);
+});
+
+router.post('/:id/link', authenticate, requireMinRole('analyst'), (req, res) => {
+  const { target_incident_id } = req.body;
+  if (!target_incident_id) return res.status(400).json({ error: 'target_incident_id is required' });
+  if (target_incident_id === req.params.id) return res.status(400).json({ error: 'Cannot link incident to itself' });
+
+  const incidents = read('incidents');
+  const sourceIdx = incidents.findIndex(i => i.id === req.params.id);
+  const targetIdx = incidents.findIndex(i => i.id === target_incident_id);
+  if (sourceIdx === -1 || targetIdx === -1) return res.status(404).json({ error: 'Incident not found' });
+
+  incidents[sourceIdx].linked_incidents = incidents[sourceIdx].linked_incidents || [];
+  incidents[targetIdx].linked_incidents = incidents[targetIdx].linked_incidents || [];
+  if (!incidents[sourceIdx].linked_incidents.includes(target_incident_id)) {
+    incidents[sourceIdx].linked_incidents.push(target_incident_id);
+  }
+  if (!incidents[targetIdx].linked_incidents.includes(req.params.id)) {
+    incidents[targetIdx].linked_incidents.push(req.params.id);
+  }
+  incidents[sourceIdx].updated_at = new Date().toISOString();
+  incidents[targetIdx].updated_at = new Date().toISOString();
+  write('incidents', incidents);
+
+  logAction({
+    userId: req.user.id,
+    action: 'LINK_INCIDENT',
+    targetType: 'incident',
+    targetId: req.params.id,
+    metadata: { linked_incident_id: target_incident_id }
+  });
+
+  res.json({ success: true, linked_incidents: incidents[sourceIdx].linked_incidents });
+});
+
+router.get('/:id/activity', authenticate, (req, res) => {
+  const incident = read('incidents').find(i => i.id === req.params.id);
+  if (!incident) return res.status(404).json({ error: 'Incident not found' });
+
+  const logs = read('audit_logs').filter(l => l.target_id === req.params.id || l.metadata?.incident_id === req.params.id);
+  const users = read('users');
+  const enriched = logs.map(l => ({
+    ...l,
+    user_name: users.find(u => u.id === l.user_id)?.name || 'Unknown'
+  })).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+  res.json(enriched);
+});
+
+router.post('/:id/watchers', authenticate, requireMinRole('analyst'), (req, res) => {
+  const { email, user_id } = req.body;
+  if (!email && !user_id) return res.status(400).json({ error: 'email or user_id is required' });
+
+  const users = read('users');
+  const incidents = read('incidents');
+  const idx = incidents.findIndex(i => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Incident not found' });
+
+  const watcher = user_id ? users.find(u => u.id === user_id) : users.find(u => u.email === email);
+  if (!watcher) return res.status(404).json({ error: 'User not found' });
+
+  incidents[idx].watchers = incidents[idx].watchers || [];
+  if (!incidents[idx].watchers.some(w => (typeof w === 'string' ? w === watcher.id : w.user_id === watcher.id))) {
+    incidents[idx].watchers.push({ user_id: watcher.id, email: watcher.email, role: watcher.role, name: watcher.name });
+  }
+  incidents[idx].updated_at = new Date().toISOString();
+  write('incidents', incidents);
+
+  logAction({
+    userId: req.user.id,
+    action: 'ADD_INCIDENT_WATCHER',
+    targetType: 'incident',
+    targetId: req.params.id,
+    metadata: { watcher_id: watcher.id }
+  });
+
+  const notifications = read('notifications');
+  notifications.push({
+    id: Date.now().toString() + Math.random(),
+    title: `You are now watching incident ${incidents[idx].id}`,
+    message: `${req.user.name || 'A collaborator'} added you as a watcher on incident ${incidents[idx].title}.`,
+    type: 'incident_watch',
+    recipient_id: watcher.id,
+    severity: 'normal',
+    related_incident_id: incidents[idx].id,
+    action_url: `/incidents/${incidents[idx].id}`,
+    read: false,
+    created_at: new Date().toISOString(),
+    created_by: 'SYSTEM'
+  });
+  write('notifications', notifications);
+
+  res.json({ success: true, watcher: { user_id: watcher.id, user_name: watcher.name, email: watcher.email, role: watcher.role } });
 });
 
 router.delete('/:id', authenticate, requireMinRole('super_admin'), (req,res) => {
@@ -183,6 +390,20 @@ router.post('/:id/tag-socio-technical', authenticate, requireMinRole('analyst'),
       targetType: 'incident',
       targetId: req.params.id,
       metadata: { root_cause_type: stsAnalysis.root_cause_type, sts_risk_score: stsAnalysis.sts_risk_score }
+    });
+
+    const superAdmins = read('users').filter(u => u.role === 'super_admin');
+    superAdmins.forEach(async admin => {
+      try {
+        await email.sendSystemEmail({
+          to: admin.email,
+          subject: `KALRO STS Alert: ${incident.title}`,
+          html: email.buildSocioTechnicalGapEmail(incident, stsAnalysis),
+          station_id: incident.station_id
+        });
+      } catch (err) {
+        console.error('Failed to send STS gap email', err);
+      }
     });
 
     res.json(incident);

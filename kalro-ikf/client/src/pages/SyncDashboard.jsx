@@ -71,7 +71,7 @@ export default function SyncDashboard() {
 
   if (!isAdmin) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text3)' }}>
         <p>Super Admin access required for Hub Sync Dashboard</p>
       </div>
     );
@@ -80,7 +80,7 @@ export default function SyncDashboard() {
   return (
     <div style={{ padding: '20px' }}>
       <h1>🌐 Hub Sync Management Dashboard</h1>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
+      <p style={{ color: 'var(--text3)', marginBottom: '20px' }}>
         Manage station synchronization, approve global routines, and monitor hub-spoke health
       </p>
 
@@ -92,7 +92,7 @@ export default function SyncDashboard() {
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+              <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '2px solid var(--border)' }}>
                 <th style={{ padding: '10px', textAlign: 'left' }}>Station</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>Incidents</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>Users</th>
@@ -102,10 +102,10 @@ export default function SyncDashboard() {
             </thead>
             <tbody>
               {stations.map(station => (
-                <tr key={station.name} style={{ borderBottom: '1px solid #eee' }}>
+                <tr key={station.name} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px', fontWeight: 'bold' }}>{station.name}</td>
                   <td style={{ padding: '10px', textAlign: 'center' }}>
-                    {station.total_incidents} <span style={{ color: '#ff6b6b', fontSize: '12px' }}>({station.open_incidents} open)</span>
+                    {station.total_incidents} <span style={{ color: 'var(--kalro-red)', fontSize: '12px' }}>({station.open_incidents} open)</span>
                   </td>
                   <td style={{ padding: '10px', textAlign: 'center' }}>{station.users}</td>
                   <td style={{ padding: '10px', textAlign: 'center' }}>{station.local_routines}</td>
@@ -114,7 +114,7 @@ export default function SyncDashboard() {
                       onClick={() => handleViewStationStatus(station.name)}
                       style={{
                         padding: '6px 12px',
-                        backgroundColor: '#4CAF50',
+                        backgroundColor: 'var(--kalro-green)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
@@ -151,7 +151,7 @@ export default function SyncDashboard() {
           <p><strong>Global Routines Available:</strong> {stationStatus.global_routines_available}</p>
           <p><strong>Pending Approvals:</strong> {stationStatus.pending_approvals}</p>
           <p><strong>Station Health:</strong> <span style={{ color: stationStatus.health === 'active' ? 'var(--kalro-green)' : 'var(--text3)' }}>{stationStatus.health.toUpperCase()}</span></p>
-          <p style={{ fontSize: '12px', color: '#666' }}>Last sync: {new Date(stationStatus.last_sync).toLocaleString()}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text3)' }}>Last sync: {new Date(stationStatus.last_sync).toLocaleString()}</p>
         </div>
       )}
 
@@ -159,7 +159,7 @@ export default function SyncDashboard() {
       <div>
         <h2>✅ Pending Global Routine Approvals ({pending.length})</h2>
         {pending.length === 0 ? (
-          <p style={{ color: '#999' }}>No pending approvals</p>
+          <p style={{ color: 'var(--text3)' }}>No pending approvals</p>
         ) : (
           <div style={{ display: 'grid', gap: '15px' }}>
             {pending.map(item => (
@@ -167,21 +167,21 @@ export default function SyncDashboard() {
                 key={item.id}
                 style={{
                   padding: '15px',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--border)',
                   borderRadius: '6px',
-                  backgroundColor: '#fff9e6'
+                  backgroundColor: 'var(--kalro-red-pale)'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: '0 0 10px 0' }}>{item.title}</h4>
-                    <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>
+                    <p style={{ margin: '5px 0', fontSize: '14px', color: 'var(--text3)' }}>
                       <strong>From Station:</strong> {item.station_id}
                     </p>
-                    <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>
+                    <p style={{ margin: '5px 0', fontSize: '14px', color: 'var(--text3)' }}>
                       <strong>Contributor:</strong> {item.contributor}
                     </p>
-                    <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>
+                    <p style={{ margin: '5px 0', fontSize: '14px', color: 'var(--text3)' }}>
                       {item.content_preview}
                     </p>
                     <div style={{ marginTop: '10px' }}>
@@ -203,7 +203,7 @@ export default function SyncDashboard() {
                         </span>
                       ))}
                     </div>
-                    <p style={{ fontSize: '12px', color: '#999', marginTop: '10px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '10px' }}>
                       Pushed: {new Date(item.pushed_at).toLocaleString()}
                     </p>
                   </div>

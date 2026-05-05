@@ -3,6 +3,8 @@ const { read } = require('../store');
 const { authenticate } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 const gameTheory = require('../logic/game-theory');
+const socioTechnical = require('../logic/socio-technical');
+const email = require('../logic/email');
 const router = express.Router();
 
 const SLA_HOURS = { critical:2, high:4, medium:8, low:24 };
@@ -160,6 +162,40 @@ router.get('/dashboard', authenticate, (req,res) => {
     recent_activity:logs.slice(0,6).map(l=>{const u=users.find(u=>u.id===l.user_id);return{...l,user_name:u?u.name:'Unknown'};}),
     metrics
   });
+});
+
+router.post('/schedule-email', authenticate, requireRole('super_admin'), async (req,res) => {
+  const viewers = read('users').filter(u => u.role === 'viewer' && u.email);
+  if (viewers.length === 0) {
+    return res.status(404).json({ error: 'No viewer recipients configured.' });
+  }
+
+  const metrics = gameTheory.calculateResilienceMetrics();
+  const stsReport = socioTechnical.generateResiliencyReport();
+  const reportData = { metrics, stsReport };
+
+  try {
+    const pdfBuffer = await email.createResilienceReportPdf(reportData);
+    const html = email.buildResilienceReportHtml(reportData);
+
+    await Promise.all(viewers.map(user => email.sendSystemEmail({
+      to: user.email,
+      subject: 'KALRO Resilience Report',
+      html,
+      station_id: user.station_id || 'HQ',
+      attachments: [
+        {
+          filename: 'KALRO-Resilience-Report.pdf',
+          content: pdfBuffer
+        }
+      ]
+    })));
+
+    res.json({ success: true, delivered: viewers.length });
+  } catch (err) {
+    console.error('Failed to send scheduled resilience report', err);
+    res.status(500).json({ error: 'Failed to send scheduled resilience report' });
+  }
 });
 
 router.get('/summary', authenticate, requireRole('super_admin'), (req,res) => {

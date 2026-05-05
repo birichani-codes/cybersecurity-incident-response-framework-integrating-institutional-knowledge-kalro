@@ -119,7 +119,7 @@ export default function NotificationsPage() {
   return (
     <div style={{ padding: '20px' }}>
       <h1>🔔 Notifications Center</h1>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
+      <p style={{ color: 'var(--text3)', marginBottom: '20px' }}>
         Manage all system notifications and alerts
       </p>
 
@@ -170,7 +170,7 @@ export default function NotificationsPage() {
             onChange={(e) => setSearchText(e.target.value)}
             style={{
               padding: '8px 12px',
-              border: '1px solid #ddd',
+              border: '1px solid var(--border)',
               borderRadius: '4px',
               flex: 1,
               maxWidth: '300px'
@@ -181,9 +181,9 @@ export default function NotificationsPage() {
             onChange={(e) => setFilter(e.target.value)}
             style={{
               padding: '8px 12px',
-              border: '1px solid #ddd',
+              border: '1px solid var(--border)',
               borderRadius: '4px',
-              backgroundColor: 'white'
+              backgroundColor: 'var(--bg2)'
             }}
           >
             <option value="all">All Notifications</option>
@@ -215,10 +215,10 @@ export default function NotificationsPage() {
           style={{
             padding: '40px',
             textAlign: 'center',
-            color: '#999',
-            backgroundColor: '#f9f9f9',
+            color: 'var(--text3)',
+            backgroundColor: 'var(--bg3)',
             borderRadius: '6px',
-            border: '1px solid #eee'
+            border: '1px solid var(--border)'
           }}
         >
           <p style={{ fontSize: '16px' }}>No notifications to display</p>
@@ -273,10 +273,10 @@ export default function NotificationsPage() {
                     {notif.severity.toUpperCase()}
                   </span>
                 </div>
-                <p style={{ margin: '8px 0', color: '#666', lineHeight: '1.5' }}>
+                <p style={{ margin: '8px 0', color: 'var(--text3)', lineHeight: '1.5' }}>
                   {notif.message}
                 </p>
-                <div style={{ fontSize: '12px', color: '#999', display: 'flex', gap: '15px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', display: 'flex', gap: '15px' }}>
                   <span>{new Date(notif.created_at).toLocaleString()}</span>
                   {notif.related_incident_id && (
                     <span>Incident: {notif.related_incident_id}</span>
