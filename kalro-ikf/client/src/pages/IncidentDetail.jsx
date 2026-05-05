@@ -65,6 +65,11 @@ export default function IncidentDetail() {
   const [activityLoading,setActivityLoading]=useState(true)
   const [collabStatus,setCollabStatus]=useState('')
   const [collabError,setCollabError]=useState('')
+  const [showVideo,setShowVideo]=useState(false)
+  const [inviteModal,setInviteModal]=useState(false)
+  const [availableUsers,setAvailableUsers]=useState([])
+  const [selectedUsers,setSelectedUsers]=useState([])
+  const [inviting,setInviting]=useState(false)
   const navigate=useNavigate(), { isAnalyst, user }=useAuth()
 
   const load=async()=>{
@@ -92,6 +97,38 @@ export default function IncidentDetail() {
       setActivity([])
     } finally {
       setActivityLoading(false)
+    }
+  }
+
+  const loadUsers = async () => {
+    try {
+      const res = await api.get('/users')
+      setAvailableUsers(res.data.filter(u => u.id !== user.id))
+    } catch(err) {
+      console.error('Failed to load users:', err)
+    }
+  }
+
+  const inviteUsers = async () => {
+    if (selectedUsers.length === 0) {
+      setCollabError('Select at least one user to invite.')
+      return
+    }
+    setInviting(true)
+    setCollabError('')
+    setCollabStatus('Sending invites...')
+    try {
+      await api.post(`/incidents/${id}/invite`, { user_ids: selectedUsers })
+      setCollabStatus('Team invited successfully.')
+      setInviteModal(false)
+      setSelectedUsers([])
+      await loadActivity()
+      await load()
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to invite team')
+    } finally {
+      setInviting(false)
+      setCollabStatus('')
     }
   }
 
@@ -178,7 +215,7 @@ export default function IncidentDetail() {
     }
   }
 
-  useEffect(()=>{ load(); loadActivity(); },[id])
+  useEffect(()=>{ load(); loadActivity(); if(isAnalyst) loadUsers(); },[id, isAnalyst])
 
   const updateStatus=async(status)=>{ setUpdating(true); await api.put('/incidents/'+id,{status}); if((status==='resolved'||status==='closed')&&isAnalyst) setShowCapture(true); load(); loadActivity(); setUpdating(false) }
   const handleCaptured=()=>{ setShowCapture(false); setSavedMsg('Knowledge entry saved.'); load(); setTimeout(()=>setSavedMsg(''),4000) }
@@ -301,7 +338,29 @@ export default function IncidentDetail() {
             </div>
 
             <div className="card" style={{marginTop:20}}>
-              <div className="section-header"><h2>Incident War Room</h2></div>
+              <div className="section-header">
+                <h2>Incident War Room</h2>
+                {incident.is_major && (
+                  <div style={{display:'flex',gap:8}}>
+                    <button className="btn btn-primary btn-sm" onClick={()=>setShowVideo(!showVideo)}>
+                      {showVideo ? 'Hide' : 'Start'} Video Briefing
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>{setInviteModal(true); loadUsers()}}>
+                      Invite Team
+                    </button>
+                  </div>
+                )}
+              </div>
+              {incident.is_major && showVideo && (
+                <div style={{marginBottom:20, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden'}}>
+                  <iframe
+                    src={`https://meet.jit.si/kalro-incident-${incident.id}`}
+                    style={{width:'100%', height:'400px', border:'none'}}
+                    allow="camera; microphone; fullscreen; display-capture"
+                    title="KALRO Video Briefing"
+                  ></iframe>
+                </div>
+              )}
               <div style={{marginBottom:16,fontSize:13,color:'var(--text2)'}}>Capture operational collaboration updates, linked incidents, and stakeholder watchers in one place.</div>
               {collabError && <div className="alert alert-error" style={{marginBottom:12}}>{collabError}</div>}
               {collabStatus && <div className="alert alert-info" style={{marginBottom:12}}>{collabStatus}</div>}
@@ -438,6 +497,21 @@ export default function IncidentDetail() {
                     </button>
                   ))}
                 </div>
+                <div style={{marginTop:12, padding:'10px 12px', background:'var(--bg3)', borderRadius:'var(--radius)', fontSize:12}}>
+                  <div style={{fontWeight:600, marginBottom:4}}>Major Incident Toggle</div>
+                  <div style={{color:'var(--text2)', marginBottom:8}}>Enable for high-impact incidents requiring video briefing and team mobilization.</div>
+                  <button 
+                    className={`btn btn-sm ${incident.is_major ? 'btn-primary' : 'btn-ghost'}`} 
+                    onClick={async () => {
+                      await api.put('/incidents/' + id, { is_major: !incident.is_major });
+                      load();
+                      loadActivity();
+                    }}
+                    disabled={updating}
+                  >
+                    {incident.is_major ? '★ Major Incident Active' : '☆ Mark as Major Incident'}
+                  </button>
+                </div>
                 {isCloseable&&(
                   <div style={{marginTop:12,padding:'10px 12px',background:'var(--kalro-green-glow)',border:'1px solid rgba(46,125,50,0.3)',borderRadius:'var(--radius)',fontSize:12,color:'var(--kalro-green-light)'}}>
                     <div style={{fontWeight:600,marginBottom:4}}>◈ Capture knowledge</div>
@@ -505,6 +579,41 @@ export default function IncidentDetail() {
         </div>
       </div>
       {showCapture&&<CaptureModal incident={incident} onClose={()=>setShowCapture(false)} onSaved={handleCaptured}/>}
+      {inviteModal&&(
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setInviteModal(false)}>
+          <div className="modal" style={{maxWidth:500}}>
+            <div className="modal-header"><h2>Invite Team to War Room</h2><button className="modal-close" onClick={()=>setInviteModal(false)}>×</button></div>
+            <div className="alert alert-info" style={{marginBottom:16}}>Select experts to invite to this incident's collaboration and video briefing.</div>
+            <div style={{maxHeight:300, overflowY:'auto', marginBottom:16}}>
+              {availableUsers.map(u => (
+                <div key={u.id} style={{display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderBottom:'1px solid var(--border)'}}>
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(u.id)}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedUsers(prev => [...prev, u.id])
+                      } else {
+                        setSelectedUsers(prev => prev.filter(id => id !== u.id))
+                      }
+                    }}
+                  />
+                  <div>
+                    <div style={{fontWeight:600}}>{u.name}</div>
+                    <div style={{fontSize:12, color:'var(--text3)'}}>{u.email} • {u.role} • {u.station_id || 'Hub'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-ghost" onClick={()=>setInviteModal(false)}>Cancel</button>
+              <button type="button" className="btn btn-primary" disabled={inviting || selectedUsers.length === 0} onClick={inviteUsers}>
+                {inviting ? 'Inviting...' : `Invite ${selectedUsers.length} User${selectedUsers.length !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

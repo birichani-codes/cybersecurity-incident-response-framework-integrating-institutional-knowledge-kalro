@@ -1,5 +1,53 @@
 [
   {
+    "id": "logfbf9558f",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc4",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.20833333333333334
+    },
+    "created_at": "2026-05-05T10:52:49.492Z"
+  },
+  {
+    "id": "log16c54ead",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc4",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.20833333333333334
+    },
+    "created_at": "2026-05-05T10:52:49.430Z"
+  },
+  {
+    "id": "log94a7ab68",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc6",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.20833333333333334
+    },
+    "created_at": "2026-05-05T10:49:42.158Z"
+  },
+  {
+    "id": "logb678a62a",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc6",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.20833333333333334
+    },
+    "created_at": "2026-05-05T10:49:41.953Z"
+  },
+  {
     "id": "log1e8e12ef",
     "user_id": "u1",
     "action": "LOGIN",

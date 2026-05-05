@@ -25,7 +25,7 @@ router.get('/me', authenticate, (req,res) => {
   const { password, ...safe } = user; res.json(safe);
 });
 
-router.get('/users', authenticate, requireRole('super_admin'), (req,res) => {
+router.get('/users', authenticate, requireRole('super_admin', 'analyst'), (req,res) => {
   res.json(read('users').map(({ password, ...u }) => u));
 });
 

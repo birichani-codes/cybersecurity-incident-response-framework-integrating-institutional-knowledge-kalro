@@ -360,6 +360,78 @@ router.post('/:id/watchers', authenticate, requireMinRole('analyst'), (req, res)
   res.json({ success: true, watcher: { user_id: watcher.id, user_name: watcher.name, email: watcher.email, role: watcher.role } });
 });
 
+router.post('/:id/invite', authenticate, requireMinRole('analyst'), async (req, res) => {
+  const { user_ids } = req.body;
+  if (!Array.isArray(user_ids) || user_ids.length === 0) return res.status(400).json({ error: 'user_ids array required' });
+
+  const users = read('users');
+  const incidents = read('incidents');
+  const idx = incidents.findIndex(i => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Incident not found' });
+
+  const invitedUsers = user_ids.map(id => users.find(u => u.id === id)).filter(Boolean);
+  if (invitedUsers.length === 0) return res.status(400).json({ error: 'No valid users found' });
+
+  const incident = incidents[idx];
+  const roomId = `kalro-incident-${incident.id}`;
+
+  // Send emails
+  for (const user of invitedUsers) {
+    await email.sendSystemEmail({
+      to: user.email,
+      subject: `KALRO Incident Collaboration: ${incident.title}`,
+      html: `
+        <h2>KALRO Incident War Room Invitation</h2>
+        <p>You have been invited to collaborate on incident <strong>${incident.id}</strong>: <em>${incident.title}</em></p>
+        <p><strong>Severity:</strong> ${incident.severity} | <strong>Status:</strong> ${incident.status}</p>
+        <p><strong>Description:</strong> ${incident.description}</p>
+        <p><a href="https://meet.jit.si/${roomId}" style="background:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Join Video Briefing</a></p>
+        <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/incidents/${incident.id}">View Incident Details</a></p>
+        <p>This is a major incident requiring immediate attention. Please join the video briefing to discuss response strategies.</p>
+        <hr>
+        <p><small>KALRO Integrated Knowledge Framework - Automated Notification</small></p>
+      `,
+      station_id: incident.station_id || 'Hub'
+    });
+
+    // Also add as watcher if not already
+    incident.watchers = incident.watchers || [];
+    if (!incident.watchers.some(w => (typeof w === 'string' ? w === user.id : w.user_id === user.id))) {
+      incident.watchers.push({ user_id: user.id, email: user.email, role: user.role, name: user.name });
+    }
+
+    // Send notification
+    const notifications = read('notifications');
+    notifications.push({
+      id: Date.now().toString() + Math.random(),
+      title: `Invited to incident collaboration: ${incident.title}`,
+      message: `${req.user.name || 'A team member'} invited you to collaborate on incident ${incident.id}. Join the video briefing if this is a major incident.`,
+      type: 'incident_invite',
+      recipient_id: user.id,
+      severity: incident.is_major ? 'high' : 'normal',
+      related_incident_id: incident.id,
+      action_url: `/incidents/${incident.id}`,
+      read: false,
+      created_at: new Date().toISOString(),
+      created_by: req.user.id
+    });
+    write('notifications', notifications);
+  }
+
+  incident.updated_at = new Date().toISOString();
+  write('incidents', incidents);
+
+  logAction({
+    userId: req.user.id,
+    action: 'INVITE_USERS_TO_INCIDENT',
+    targetType: 'incident',
+    targetId: req.params.id,
+    metadata: { invited_count: invitedUsers.length, user_ids }
+  });
+
+  res.json({ success: true, invited: invitedUsers.length });
+});
+
 router.delete('/:id', authenticate, requireMinRole('super_admin'), (req,res) => {
   let incidents = read('incidents');
   if (!incidents.find(i => i.id===req.params.id)) return res.status(404).json({ error:'Not found' });
