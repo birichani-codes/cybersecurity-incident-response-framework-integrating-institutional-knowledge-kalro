@@ -43,6 +43,7 @@ app.use('/api/game-theory',   require('./routes/game-theory'));
 app.use('/api/alerts',        require('./routes/alerts'));
 app.use('/api/sync',          require('./routes/sync'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/sde',           require('./routes/sde'));
 
 // 4. AUDIT & GOVERNANCE
 const { router: auditRouter } = require('./routes/audit');

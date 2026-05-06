@@ -70,6 +70,11 @@ export default function IncidentDetail() {
   const [availableUsers,setAvailableUsers]=useState([])
   const [selectedUsers,setSelectedUsers]=useState([])
   const [inviting,setInviting]=useState(false)
+  const [briefingAgenda,setBriefingAgenda]=useState('')
+  const [briefingDecision,setBriefingDecision]=useState('')
+  const [briefingSaving,setBriefingSaving]=useState(false)
+  const [decisionSaving,setDecisionSaving]=useState(false)
+  const [briefingStatus,setBriefingStatus]=useState('')
   const navigate=useNavigate(), { isAnalyst, user }=useAuth()
 
   const load=async()=>{
@@ -129,6 +134,61 @@ export default function IncidentDetail() {
     } finally {
       setInviting(false)
       setCollabStatus('')
+    }
+  }
+
+  const updateBriefing = async (payload) => {
+    setBriefingSaving(true)
+    setCollabError('')
+    setBriefingStatus('Updating briefing...')
+    try {
+      await api.put(`/incidents/${id}/briefing`, payload)
+      await loadActivity()
+      await load()
+      setBriefingStatus(payload.active === false ? 'Briefing ended.' : 'Briefing saved.' )
+      return true
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to update briefing')
+      return false
+    } finally {
+      setBriefingSaving(false)
+      setTimeout(() => setBriefingStatus(''), 3000)
+    }
+  }
+
+  const startBriefing = async () => {
+    const success = await updateBriefing({ active: true, agenda: briefingAgenda })
+    if (success) setShowVideo(true)
+  }
+
+  const endBriefing = async () => {
+    const success = await updateBriefing({ active: false })
+    if (success) setShowVideo(false)
+  }
+
+  const saveBriefingAgenda = async () => {
+    await updateBriefing({ agenda: briefingAgenda })
+  }
+
+  const addBriefingDecision = async () => {
+    if (!briefingDecision.trim()) {
+      setCollabError('Add a briefing decision note before saving.')
+      return
+    }
+    setDecisionSaving(true)
+    setCollabError('')
+    setBriefingStatus('Saving decision...')
+    try {
+      await api.post(`/incidents/${id}/briefing/decisions`, { message: briefingDecision.trim() })
+      setBriefingDecision('')
+      setBriefingStatus('Decision captured.')
+      await loadActivity()
+      await load()
+    } catch(err) {
+      setCollabError(err.response?.data?.error || 'Failed to capture briefing decision')
+    } finally {
+      setDecisionSaving(false)
+      setTimeout(() => setBriefingStatus(''), 3000)
     }
   }
 
@@ -216,6 +276,13 @@ export default function IncidentDetail() {
   }
 
   useEffect(()=>{ load(); loadActivity(); if(isAnalyst) loadUsers(); },[id, isAnalyst])
+
+  useEffect(()=>{
+    setBriefingAgenda(incident?.briefing?.agenda || '')
+    if (incident?.briefing?.active) {
+      setShowVideo(true)
+    }
+  }, [incident?.briefing])
 
   const updateStatus=async(status)=>{ setUpdating(true); await api.put('/incidents/'+id,{status}); if((status==='resolved'||status==='closed')&&isAnalyst) setShowCapture(true); load(); loadActivity(); setUpdating(false) }
   const handleCaptured=()=>{ setShowCapture(false); setSavedMsg('Knowledge entry saved.'); load(); setTimeout(()=>setSavedMsg(''),4000) }
@@ -341,20 +408,63 @@ export default function IncidentDetail() {
               <div className="section-header">
                 <h2>Incident War Room</h2>
                 {incident.is_major && (
-                  <div style={{display:'flex',gap:8}}>
-                    <button className="btn btn-primary btn-sm" onClick={()=>setShowVideo(!showVideo)}>
-                      {showVideo ? 'Hide' : 'Start'} Video Briefing
-                    </button>
-                    <button className="btn btn-ghost btn-sm" onClick={()=>{setInviteModal(true); loadUsers()}}>
-                      Invite Team
-                    </button>
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                      <button className="btn btn-primary btn-sm" onClick={incident.briefing?.active ? endBriefing : startBriefing} disabled={briefingSaving}>
+                        {incident.briefing?.active ? 'End' : 'Start'} Video Briefing
+                      </button>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>{setInviteModal(true); loadUsers()}}>
+                        Invite Team
+                      </button>
+                      {incident.briefing?.room_url && (
+                        <a className="btn btn-secondary btn-sm" target="_blank" rel="noreferrer" href={incident.briefing.room_url}>
+                          Open Meeting Room
+                        </a>
+                      )}
+                    </div>
+                    <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+                      <input value={briefingAgenda} onChange={e=>setBriefingAgenda(e.target.value)} placeholder="Briefing agenda or talking points" style={{flex:1,minWidth:260,padding:'10px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)'}} />
+                      <button className="btn btn-sm btn-primary" onClick={saveBriefingAgenda} disabled={briefingSaving}>Save agenda</button>
+                    </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:12,fontSize:13,color:'var(--text3)'}}>
+                      <span>{incident.briefing?.active ? 'Live briefing active' : 'Briefing room ready'}</span>
+                      {incident.briefing?.started_at && <span>Started {fmtDateTime(incident.briefing.started_at)}</span>}
+                      {incident.briefing?.ended_at && !incident.briefing?.active && <span>Ended {fmtDateTime(incident.briefing.ended_at)}</span>}
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                      <div style={{padding:14,background:'var(--bg3)',borderRadius:10,border:'1px solid var(--border)'}}>
+                        <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:8}}>Attendees</div>
+                        {watchers.length===0 ? (
+                          <div style={{fontSize:13,color:'var(--text2)'}}>No attendees yet. Invite team members to the war room.</div>
+                        ) : (
+                          watchers.map(w=>(
+                            <div key={w.user_id||w.email} style={{display:'flex',justifyContent:'space-between',gap:10,marginBottom:8}}>
+                              <span>{w.user_name || w.email}</span>
+                              <span style={{fontSize:11,color:'var(--text3)'}}>{w.role || 'stakeholder'}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div style={{padding:14,background:'var(--bg3)',borderRadius:10,border:'1px solid var(--border)'}}>
+                        <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:8}}>Recommended Experts</div>
+                        <div style={{display:'grid',gap:6}}>
+                          {(incident.type==='ransomware' ? ['Forensics','Legal','SOC Analyst']
+                            : incident.type==='phishing' ? ['Threat Intel','User Awareness','SOC Analyst']
+                            : incident.type==='unauthorized_access' ? ['Identity','Audit','Forensics']
+                            : incident.type==='ddos' ? ['Network Ops','Infra','SOC Analyst']
+                            : incident.type==='data_exfiltration' ? ['Data Protection','Forensics','Legal']
+                            : ['Threat Intelligence','Operations','Compliance']
+                          ).map(rec => <div key={rec} style={{fontSize:13,color:'var(--text)'}}>• {rec}</div>)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
               {incident.is_major && showVideo && (
                 <div style={{marginBottom:20, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden'}}>
                   <iframe
-                    src={`https://meet.jit.si/kalro-incident-${incident.id}`}
+                    src={incident.briefing?.room_url || `https://meet.jit.si/kalro-incident-${incident.id}`}
                     style={{width:'100%', height:'400px', border:'none'}}
                     allow="camera; microphone; fullscreen; display-capture"
                     title="KALRO Video Briefing"
@@ -383,6 +493,29 @@ export default function IncidentDetail() {
                       </div>
                     ))}
                   </div>
+                </div>
+                <div style={{marginTop:18,padding:14,background:'var(--bg3)',borderRadius:12,border:'1px solid var(--border)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap',marginBottom:12}}>
+                    <div>
+                      <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:4}}>Briefing Decision Notes</div>
+                      <div style={{fontSize:13,color:'var(--text2)'}}>Capture key decisions from the live briefing so they are separated from general comments.</div>
+                    </div>
+                    <button className="btn btn-sm btn-primary" disabled={decisionSaving} onClick={addBriefingDecision}>Save Decision</button>
+                  </div>
+                  <textarea rows={3} value={briefingDecision} onChange={e=>setBriefingDecision(e.target.value)} style={{width:'100%',padding:12,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)',marginBottom:12}} placeholder="What decision was made? Next action? Owner? Timeline?"></textarea>
+                  {incident.briefing?.decisions?.length ? (
+                    incident.briefing.decisions.slice(0,4).map(decision => (
+                      <div key={decision.id} style={{marginBottom:12,padding:12,background:'white',borderRadius:10,border:'1px solid var(--border)'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',gap:8,marginBottom:6}}>
+                          <span style={{fontWeight:600}}>{decision.user_name}</span>
+                          <span style={{fontSize:11,color:'var(--text3)'}}>{fmtDateTime(decision.created_at)}</span>
+                        </div>
+                        <div style={{fontSize:13,color:'var(--text2)'}}>{decision.message}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{fontSize:13,color:'var(--text2)'}}>No briefing decisions recorded yet.</div>
+                  )}
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                   <div>

@@ -13,6 +13,7 @@ import Users from './pages/Users'
 import PIRDetail from './pages/PIRDetail'
 import DefensiveRoutines from './pages/DefensiveRoutines'
 import GameTheoryConfig from './pages/GameTheoryConfig'
+import SDEGovernance from './pages/SDEGovernance'
 import SyncDashboard from './pages/SyncDashboard'
 import StationManagement from './pages/StationManagement'
 import Notifications from './pages/Notifications'
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="users" element={<Guard adminOnly><Users/></Guard>}/>
             <Route path="notifications" element={<Notifications/>}/>
             <Route path="config/game-theory" element={<Guard adminOnly><GameTheoryConfig/></Guard>}/>
+            <Route path="config/sde-governance" element={<Guard adminOnly><SDEGovernance/></Guard>}/>
             <Route path="sync-dashboard" element={<Guard adminOnly><SyncDashboard/></Guard>}/>
             <Route path="station-management" element={<Guard adminOnly><StationManagement/></Guard>}/>
           </Route>

@@ -14,6 +14,7 @@ const ADMIN_NAV = [
   { to:'/reports', label:'Reports', icon:'▤' },
   { to:'/users',   label:'Users',   icon:'◉' },
   { to:'/config/game-theory', label:'Game Theory Config', icon:'⚖️' },
+  { to:'/config/sde-governance', label:'SDE Governance', icon:'🧠' },
   { to:'/sync-dashboard', label:'Hub Sync', icon:'🌐' },
   { to:'/station-management', label:'Station Management', icon:'🏛️' },
 ]

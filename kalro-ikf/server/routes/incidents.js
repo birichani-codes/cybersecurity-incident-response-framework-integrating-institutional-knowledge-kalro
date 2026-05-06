@@ -55,6 +55,15 @@ function enrichIncident(inc, users, knowledge, incidents) {
     reporter_name:r?r.name:'Unknown',
     assignee_name:a?a.name:'Unassigned',
     comments: inc.comments || [],
+    briefing: inc.briefing || {
+      room_id: `kalro-incident-${inc.id}`,
+      room_url: `https://meet.jit.si/kalro-incident-${inc.id}`,
+      active: false,
+      started_at: null,
+      ended_at: null,
+      agenda: '',
+      decisions: []
+    },
     linked_incidents,
     watchers: normalizeWatchers(inc, users),
     ...(related!==undefined?{related_knowledge:related}:{})
@@ -101,12 +110,22 @@ router.post('/', authenticate, requireMinRole('analyst'), (req,res) => {
   if (!title||!type||!severity) return res.status(400).json({ error:'title, type, severity required' });
   const incidents = read('incidents');
   const created_at = new Date().toISOString();
+  const id = 'inc' + uuid().slice(0,8);
   const newInc = {
-    id:'inc'+uuid().slice(0,8), title, type, severity, status:'open',
+    id, title, type, severity, status:'open',
     is_major: is_major||false, description:description||'', entities:entities||{},
     reported_by:req.user.id, assigned_to:null,
     station_id: station_id || req.user.station_id || 'Site A',
     sla_deadline: computeSlaDeadline(severity, created_at),
+    briefing: {
+      room_id: `kalro-incident-${id}`,
+      room_url: `https://meet.jit.si/kalro-incident-${id}`,
+      active: false,
+      started_at: null,
+      ended_at: null,
+      agenda: '',
+      decisions: []
+    },
     created_at, updated_at:created_at
   };
   incidents.push(newInc); write('incidents', incidents);
@@ -373,7 +392,10 @@ router.post('/:id/invite', authenticate, requireMinRole('analyst'), async (req, 
   if (invitedUsers.length === 0) return res.status(400).json({ error: 'No valid users found' });
 
   const incident = incidents[idx];
-  const roomId = `kalro-incident-${incident.id}`;
+  incident.briefing = incident.briefing || {};
+  incident.briefing.room_id = incident.briefing.room_id || `kalro-incident-${incident.id}`;
+  incident.briefing.room_url = `https://meet.jit.si/${incident.briefing.room_id}`;
+  const roomId = incident.briefing.room_id;
 
   // Send emails
   for (const user of invitedUsers) {
@@ -430,6 +452,78 @@ router.post('/:id/invite', authenticate, requireMinRole('analyst'), async (req, 
   });
 
   res.json({ success: true, invited: invitedUsers.length });
+});
+
+router.put('/:id/briefing', authenticate, requireMinRole('analyst'), (req, res) => {
+  const { active, agenda } = req.body;
+  const incidents = read('incidents');
+  const idx = incidents.findIndex(i => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Incident not found' });
+
+  const incident = incidents[idx];
+  incident.briefing = incident.briefing || {};
+  incident.briefing.room_id = incident.briefing.room_id || `kalro-incident-${incident.id}`;
+  incident.briefing.room_url = `https://meet.jit.si/${incident.briefing.room_id}`;
+  if (agenda !== undefined) incident.briefing.agenda = agenda;
+  if (active === true) {
+    incident.briefing.active = true;
+    incident.briefing.started_at = incident.briefing.started_at || new Date().toISOString();
+    incident.briefing.ended_at = null;
+  }
+  if (active === false) {
+    incident.briefing.active = false;
+    incident.briefing.ended_at = new Date().toISOString();
+  }
+  incident.updated_at = new Date().toISOString();
+  write('incidents', incidents);
+
+  logAction({
+    userId: req.user.id,
+    action: 'UPDATE_INCIDENT_BRIEFING',
+    targetType: 'incident',
+    targetId: req.params.id,
+    metadata: { active: incident.briefing.active, agenda: incident.briefing.agenda }
+  });
+
+  res.json(incident.briefing);
+});
+
+router.post('/:id/briefing/decisions', authenticate, requireMinRole('analyst'), (req, res) => {
+  const { message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'message is required' });
+
+  const incidents = read('incidents');
+  const idx = incidents.findIndex(i => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Incident not found' });
+
+  const incident = incidents[idx];
+  incident.briefing = incident.briefing || {};
+  incident.briefing.room_id = incident.briefing.room_id || `kalro-incident-${incident.id}`;
+  incident.briefing.room_url = `https://meet.jit.si/${incident.briefing.room_id}`;
+  incident.briefing.decisions = incident.briefing.decisions || [];
+
+  const decision = {
+    id: 'bd' + uuid().slice(0, 8),
+    user_id: req.user.id,
+    user_name: req.user.name || 'Unknown',
+    role: req.user.role,
+    message: message.trim(),
+    created_at: new Date().toISOString()
+  };
+
+  incident.briefing.decisions.unshift(decision);
+  incident.updated_at = new Date().toISOString();
+  write('incidents', incidents);
+
+  logAction({
+    userId: req.user.id,
+    action: 'ADD_BRIEFING_DECISION',
+    targetType: 'incident',
+    targetId: req.params.id,
+    metadata: { decision_id: decision.id }
+  });
+
+  res.json(decision);
 });
 
 router.delete('/:id', authenticate, requireMinRole('super_admin'), (req,res) => {

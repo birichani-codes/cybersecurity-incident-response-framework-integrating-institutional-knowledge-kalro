@@ -1,5 +1,40 @@
 [
   {
+    "id": "log5a32a890",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-06T12:52:59.424Z"
+  },
+  {
+    "id": "log1ec626df",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc4",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.20833333333333334
+    },
+    "created_at": "2026-05-05T11:07:24.255Z"
+  },
+  {
+    "id": "log189eba96",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc4",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.20833333333333334
+    },
+    "created_at": "2026-05-05T11:07:24.214Z"
+  },
+  {
     "id": "logfbf9558f",
     "user_id": "u1",
     "action": "CALCULATE_GAME_THEORY",

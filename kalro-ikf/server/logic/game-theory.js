@@ -4,41 +4,82 @@
  */
 
 const { read, write } = require('../store');
+const fs = require('fs');
+const path = require('path');
+
+const sdeSettingsPath = path.join(__dirname, '../data/sde_settings.json');
+
+/**
+ * Read SDE settings
+ */
+function getSDESettings() {
+  try {
+    const data = fs.readFileSync(sdeSettingsPath, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('Error reading SDE settings:', err);
+    return {};
+  }
+}
 
 /**
  * Calculate payoff matrix for defense vs attacker strategies
  * P(D, A) where D = Defense Cost, A = Attacker's Gain
  */
 function calculatePayoffMatrix(incident, config = {}) {
+  const sde = getSDESettings();
   const {
-    businessImpactHours = (incident.sla_minutes_remaining || 480) / 60,
-    hourlyBusinessCost = 500, // $ per hour of downtime
-    isolationCost = businessImpactHours * hourlyBusinessCost,
-    monitoringCost = 100, // $ for monitoring infrastructure
-    attackerGain = incident.severity === 'critical' ? 50000 : 
-                   incident.severity === 'high' ? 25000 : 5000,
-    riskAppetite = config.riskAppetite || 0.5 // 0 = conservative, 1 = aggressive
-  } = {
-    ...config,
-    ...((read('game-theory-config') || [{}])[0] || {})
-  };
+    riskAppetite = sde.riskAppetite || 0.5,
+    knowledgeConfidenceFactor = sde.knowledgeConfidenceFactor || 0.8,
+    stationMultipliers = sde.stationMultipliers || {},
+    attackerProfiles = sde.attackerProfiles || {},
+    socialFrictionPenalty = sde.socialFrictionPenalty || 1000,
+    hourlyBusinessCost = sde.hourlyBusinessCost || 500,
+    expectedImpactDuration = sde.expectedImpactDuration || 2
+  } = config;
+
+  // Get station multiplier
+  const stationType = incident.station_type || 'Sub-Centre/Field Station';
+  const stationMultiplier = stationMultipliers[stationType] || 1.0;
+
+  // Adjusted business cost with station multiplier
+  const adjustedHourlyCost = hourlyBusinessCost * stationMultiplier;
+
+  // Isolation Strategy Cost: Business Cost × Duration + Operational Overhead
+  const isolationCost = (adjustedHourlyCost * expectedImpactDuration) + socialFrictionPenalty;
+
+  // Monitoring cost (lower)
+  const monitoringCost = 100; // Base monitoring cost
+
+  // Attacker profile risk weight
+  const attackerType = incident.attacker_type || 'Script Kiddie';
+  const attackerRiskWeight = attackerProfiles[attackerType] || 0.2;
+
+  // Attacker's potential gain based on asset value
+  const assetValue = incident.asset_value || 10000; // Default asset value
+  const attackerGain = assetValue * attackerRiskWeight;
+
+  // Knowledge confidence reduces perceived risk
+  const riskReductionFactor = knowledgeConfidenceFactor;
 
   return {
     isolation: {
       businessCost: isolationCost,
-      riskReduction: 0.98, // 98% risk reduced
+      riskReduction: 0.98 * riskReductionFactor, // Adjusted by knowledge confidence
       knowledgeGain: 0.3,
-      score: (10 * 0.98) - (isolationCost / 1000) // Weighted score
+      score: (10 * (0.98 * riskReductionFactor)) - (isolationCost / 1000) // Weighted score
     },
     monitoring: {
       businessCost: monitoringCost,
-      riskReduction: 0.4,
-      knowledgeGain: 0.8, // More learning from monitoring
-      score: (7 * 0.4) + (monitoringCost / 100) // Different weight
+      riskReduction: 0.4 * riskReductionFactor,
+      knowledgeGain: 0.8,
+      score: (7 * (0.4 * riskReductionFactor)) + (monitoringCost / 100) // Different weight
     },
     attackerGain: attackerGain,
     defenseCost: Math.min(isolationCost, monitoringCost),
-    riskAppetite: riskAppetite
+    riskAppetite: riskAppetite,
+    stationMultiplier: stationMultiplier,
+    attackerRiskWeight: attackerRiskWeight
   };
 }
 
@@ -47,13 +88,25 @@ function calculatePayoffMatrix(incident, config = {}) {
  * Returns recommended action: 'isolate' | 'monitor' | 'hybrid'
  */
 function calculateNashEquilibrium(payoffMatrix, incident) {
-  const isolateScore = payoffMatrix.isolation.score;
-  const monitorScore = payoffMatrix.monitoring.score;
-  
+  let isolateScore = payoffMatrix.isolation.score;
+  let monitorScore = payoffMatrix.monitoring.score;
+
+  // Adjust scores based on risk appetite
+  // Conservative (low riskAppetite): Boost isolation
+  // Aggressive (high riskAppetite): Boost monitoring
+  const riskBias = (payoffMatrix.riskAppetite - 0.5) * 2; // -1 to 1
+  isolateScore += riskBias * -1; // Negative bias reduces isolation score (makes it less preferred)
+  monitorScore += riskBias * 1; // Positive bias increases monitoring score
+
+  // Consider attacker risk weight - higher attacker risk pushes toward isolation
+  const attackerBias = payoffMatrix.attackerRiskWeight * 2;
+  isolateScore += attackerBias;
+  monitorScore -= attackerBias * 0.5; // Less penalty for monitoring
+
   // Pure strategy Nash Equilibrium
   let recommendedAction = isolateScore > monitorScore ? 'isolate' : 'monitor';
-  let confidence = Math.abs(isolateScore - monitorScore) / (isolateScore + monitorScore);
-  
+  let confidence = Math.abs(isolateScore - monitorScore) / (Math.abs(isolateScore) + Math.abs(monitorScore));
+
   // Consider STS complexity - if high social factors, lean toward monitoring/training
   if (incident.socio_technical?.social_factors?.length > 2) {
     monitorScore += 2; // Boost monitoring for social complexity
@@ -62,7 +115,7 @@ function calculateNashEquilibrium(payoffMatrix, incident) {
       confidence = 0.7;
     }
   }
-  
+
   // If scores are close, suggest hybrid
   if (Math.abs(isolateScore - monitorScore) < 1) {
     recommendedAction = 'hybrid';
@@ -74,7 +127,12 @@ function calculateNashEquilibrium(payoffMatrix, incident) {
     isolateScore: Math.round(isolateScore * 100) / 100,
     monitorScore: Math.round(monitorScore * 100) / 100,
     confidence: Math.min(confidence, 0.95),
-    reasoning: generateReasoning(recommendedAction, payoffMatrix, incident)
+    reasoning: generateReasoning(recommendedAction, payoffMatrix, incident),
+    sdeFactors: {
+      riskAppetite: payoffMatrix.riskAppetite,
+      stationMultiplier: payoffMatrix.stationMultiplier,
+      attackerRiskWeight: payoffMatrix.attackerRiskWeight
+    }
   };
 }
 
@@ -82,12 +140,16 @@ function calculateNashEquilibrium(payoffMatrix, incident) {
  * Generate human-readable reasoning for decision
  */
 function generateReasoning(action, payoff, incident) {
+  const riskLevel = payoff.riskAppetite < 0.3 ? 'Conservative' : payoff.riskAppetite > 0.7 ? 'Aggressive' : 'Balanced';
+  const stationMultiplier = payoff.stationMultiplier;
+  const attackerRisk = payoff.attackerRiskWeight;
+
   if (action === 'isolate') {
-    return `High severity (${incident.severity}) + High business impact (${payoff.isolation.businessCost}$ cost) suggests immediate isolation to contain threat.`;
+    return `Move A (Isolate) is recommended. Although Business Cost is $${payoff.isolation.businessCost.toFixed(0)}, the Risk to the asset is too high for the current '${riskLevel}' setting (Risk Appetite: ${payoff.riskAppetite}). Station Multiplier: ${stationMultiplier}x, Attacker Risk Weight: ${attackerRisk}.`;
   } else if (action === 'monitor') {
-    return `Lower immediate risk + High knowledge gain potential. Monitor to learn about threat patterns before taking action.`;
+    return `Move B (Monitor) is recommended. Lower immediate risk and higher knowledge gain potential. Current '${riskLevel}' setting favors learning over containment. Station Multiplier: ${stationMultiplier}x, Attacker Risk Weight: ${attackerRisk}.`;
   } else {
-    return `Trade-off scenario. Consider phased approach: Monitor initially, then isolate if threat escalates.`;
+    return `Trade-off scenario with '${riskLevel}' risk appetite. Consider phased approach: Monitor initially, then isolate if threat escalates. Station Multiplier: ${stationMultiplier}x, Attacker Risk Weight: ${attackerRisk}.`;
   }
 }
 
