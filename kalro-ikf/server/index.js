@@ -44,6 +44,7 @@ app.use('/api/alerts',        require('./routes/alerts'));
 app.use('/api/sync',          require('./routes/sync'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/sde',           require('./routes/sde'));
+app.use('/api/log-collection', require('./routes/log-collection'));
 
 // 4. AUDIT & GOVERNANCE
 const { router: auditRouter } = require('./routes/audit');
@@ -58,6 +59,36 @@ app.get('/api/health', (req, res) => {
     time: new Date().toISOString()
   });
 });
+
+// ========================================
+// 6. AUTOMATED SIEM PROCESSING
+// ========================================
+// Process SIEM queue every 5 minutes
+setInterval(async () => {
+  try {
+    const siemEngine = require('./services/siemEngine');
+    const alertEnrichment = require('./services/alertEnrichment');
+
+    // Step 1: Analyze logs with SIEM
+    const siemResults = siemEngine.processSiemQueue();
+
+    if (siemResults.status === 'success') {
+      console.log(`[SIEM] Processed ${siemResults.processed} logs, generated ${siemResults.alerts_generated} alerts`);
+    }
+
+    // Step 2: Enrich alerts and create incidents
+    const enrichResults = alertEnrichment.processPendingAlerts();
+
+    if (enrichResults.incidents_created > 0) {
+      console.log(`[Enrichment] Created ${enrichResults.incidents_created} incidents from ${enrichResults.total_alerts} alerts`);
+    }
+
+  } catch (error) {
+    console.error('[SIEM Processing] Error:', error);
+  }
+}, 5 * 60 * 1000); // Run every 5 minutes
+
+console.log('[SIEM] Automated processing started (every 5 minutes)');
 
 // 6. GLOBAL ERROR HANDLING
 app.use((err, req, res, next) => {
@@ -76,6 +107,7 @@ app.listen(PORT, HOST, () => {
   Status: Running on http://${HOST}:${PORT}
   Allowed Origins: ${allowedOrigins.join(', ')}
   Mode:   Decentralized Architecture
+  SIEM:   Enabled (5-minute processing)
   ================================================
   `);
 });
