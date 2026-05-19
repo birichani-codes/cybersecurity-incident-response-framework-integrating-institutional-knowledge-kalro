@@ -200,20 +200,25 @@ function getASN(ip) {
 function suggestDefensiveRoutines(alert) {
   const knowledge = read('knowledge') || [];
   const suggestions = [];
-  
+
+  // Special handling for EMII (External Media Incident Integration) alerts
+  if (alert.type === 'external_media' || alert.event_type === 'unauthorized_media_access') {
+    return suggestEMIIRoutines(alert);
+  }
+
   // Find routines that match alert type
   for (const entry of knowledge) {
     if (!entry.defensive_routine || !entry.defensive_routine.enabled) continue;
     if (entry.status !== 'active') continue;
-    
+
     // Match by incident type
     const routineTypes = entry.defensive_routine.applicable_incident_types || [];
     if (routineTypes.length === 0 || routineTypes.includes(alert.event_type)) {
-      
+
       // Match by severity
       const applicableSeverities = entry.defensive_routine.applicable_severities || ['critical', 'high', 'medium', 'low'];
       if (applicableSeverities.includes(alert.severity)) {
-        
+
         suggestions.push({
           routine_id: entry.id,
           title: entry.title,
@@ -238,6 +243,148 @@ function suggestDefensiveRoutines(alert) {
   });
   
   return suggestions.slice(0, 5); // Top 5 suggestions
+}
+
+/**
+ * Suggest defensive routines specifically for EMII (External Media Incident) alerts
+ */
+function suggestEMIIRoutines(alert) {
+  const knowledge = read('knowledge') || [];
+  const suggestions = [];
+
+  // EMII-specific defensive routines
+  const emiiRoutines = [
+    {
+      title: 'Isolate Affected Workstation',
+      category: 'Containment',
+      nist_function: 'Contain',
+      steps: [
+        'Immediately disconnect the workstation from the network',
+        'Physically secure the USB device',
+        'Document the device serial number and insertion time',
+        'Notify security team for forensic analysis'
+      ],
+      estimated_time_minutes: 15,
+      success_rate: 0.95,
+      prerequisites: ['Administrative access to workstation', 'Physical access to device']
+    },
+    {
+      title: 'USB Port Security Assessment',
+      category: 'Investigation',
+      nist_function: 'Investigate',
+      steps: [
+        'Check Windows Event Logs for PnP events (Event ID 6416)',
+        'Verify device authenticity against authorized registry',
+        'Scan workstation for malware using endpoint protection',
+        'Review user access logs for the affected workstation'
+      ],
+      estimated_time_minutes: 30,
+      success_rate: 0.88,
+      prerequisites: ['Security event log access', 'Endpoint protection console access']
+    },
+    {
+      title: 'Data Exfiltration Analysis',
+      category: 'Analysis',
+      nist_function: 'Analyze',
+      steps: [
+        'Monitor network traffic for unusual outbound connections',
+        'Check file system for recent unauthorized file access',
+        'Analyze USB device contents if safe to do so',
+        'Correlate with other security events in the timeframe'
+      ],
+      estimated_time_minutes: 45,
+      success_rate: 0.82,
+      prerequisites: ['Network monitoring tools', 'File system analysis tools']
+    },
+    {
+      title: 'Registry Update and Notification',
+      category: 'Recovery',
+      nist_function: 'Recover',
+      steps: [
+        'Update authorized media registry if device is legitimate',
+        'Notify affected user and provide security awareness training',
+        'Implement additional USB access controls if needed',
+        'Document incident for future reference'
+      ],
+      estimated_time_minutes: 20,
+      success_rate: 0.90,
+      prerequisites: ['Access to authorized media registry', 'User communication channels']
+    },
+    {
+      title: 'Critical Asset Protection',
+      category: 'Protection',
+      nist_function: 'Protect',
+      steps: [
+        'Temporarily revoke access to sensitive systems',
+        'Enable enhanced monitoring on affected workstation',
+        'Update endpoint protection policies',
+        'Conduct security awareness briefing for the team'
+      ],
+      estimated_time_minutes: 25,
+      success_rate: 0.93,
+      prerequisites: ['Access management system', 'Endpoint protection management']
+    }
+  ];
+
+  // Add EMII-specific routines based on severity and context
+  for (const routine of emiiRoutines) {
+    // Always include containment for unauthorized access
+    if (alert.severity === 'critical' || alert.severity === 'high' ||
+        alert.type === 'unauthorized_media_access') {
+      suggestions.push({
+        routine_id: `emii-${routine.title.toLowerCase().replace(/\s+/g, '-')}`,
+        title: routine.title,
+        category: routine.category,
+        nist_function: routine.nist_function,
+        success_rate: routine.success_rate,
+        avg_resolution_time: `${routine.estimated_time_minutes}m`,
+        confidence_score: 0.9,
+        steps: routine.steps,
+        prerequisites: routine.prerequisites,
+        estimated_time_minutes: routine.estimated_time_minutes
+      });
+    }
+  }
+
+  // Also check knowledge base for any EMII-related routines
+  for (const entry of knowledge) {
+    if (!entry.defensive_routine || !entry.defensive_routine.enabled) continue;
+    if (entry.status !== 'active') continue;
+
+    // Look for USB, media, or physical security related routines
+    const title = entry.title.toLowerCase();
+    const description = (entry.description || '').toLowerCase();
+    const tags = (entry.tags || []).join(' ').toLowerCase();
+
+    if (title.includes('usb') || title.includes('media') || title.includes('physical') ||
+        description.includes('usb') || description.includes('removable') ||
+        tags.includes('usb') || tags.includes('media') || tags.includes('physical')) {
+
+      suggestions.push({
+        routine_id: entry.id,
+        title: entry.title,
+        category: entry.defensive_routine.category,
+        nist_function: entry.defensive_routine.nist_function,
+        success_rate: entry.defensive_routine.success_rate || 0,
+        avg_resolution_time: entry.defensive_routine.avg_resolution_time,
+        confidence_score: entry.confidence_score || 0.5,
+        steps: (entry.steps || []).slice(0, 5),
+        prerequisites: entry.defensive_routine.prerequisites || [],
+        estimated_time_minutes: estimateTime(entry.defensive_routine.avg_resolution_time)
+      });
+    }
+  }
+
+  // Sort by priority for EMII incidents (containment first)
+  const priorityOrder = ['Containment', 'Investigation', 'Analysis', 'Protection', 'Recovery'];
+  suggestions.sort((a, b) => {
+    const aIndex = priorityOrder.indexOf(a.category);
+    const bIndex = priorityOrder.indexOf(b.category);
+    if (aIndex !== bIndex) return aIndex - bIndex;
+    return b.success_rate - a.success_rate;
+  });
+
+  return suggestions.slice(0, 5);
 }
 
 /**

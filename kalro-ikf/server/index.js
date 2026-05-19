@@ -1,7 +1,26 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.io
+const io = socketIo(server, {
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://cybersecurity-incident-response-fra.vercel.app'
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Make io available to routes
+app.set('io', io);
 
 // 1. DYNAMIC PORT & HOST FOR DEPLOYMENT
 const PORT = process.env.PORT || 10000;
@@ -45,6 +64,7 @@ app.use('/api/sync',          require('./routes/sync'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/sde',           require('./routes/sde'));
 app.use('/api/log-collection', require('./routes/log-collection'));
+app.use('/api/emii',           require('./routes/emii'));
 
 // 4. AUDIT & GOVERNANCE
 const { router: auditRouter } = require('./routes/audit');
@@ -90,7 +110,32 @@ setInterval(async () => {
 
 console.log('[SIEM] Automated processing started (every 5 minutes)');
 
-// 6. GLOBAL ERROR HANDLING
+// ========================================
+// 7. EXTERNAL MEDIA INCIDENT INTEGRATION (EMII)
+// ========================================
+// Initialize USB detection and monitoring
+const emii = require('./services/emii');
+emii.initializeUSBMonitoring(io);
+
+// Socket.io connection handling for real-time EMII alerts
+io.on('connection', (socket) => {
+  console.log('[EMII] Client connected for real-time alerts:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('[EMII] Client disconnected:', socket.id);
+  });
+
+  // Send initial EMII status
+  socket.emit('emii_status', {
+    status: 'active',
+    monitoring: true,
+    timestamp: new Date().toISOString()
+  });
+});
+
+console.log('[EMII] External Media Incident Integration initialized');
+
+// 8. GLOBAL ERROR HANDLING
 app.use((err, req, res, next) => {
   console.error('System Error:', err.stack);
   res.status(500).json({
@@ -99,8 +144,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 7. START SERVER
-app.listen(PORT, HOST, () => {
+// 9. START SERVER
+server.listen(PORT, HOST, () => {
   console.log(`
   ================================================
   KALRO IKF STRATEGIC ENGINE LOADED
@@ -108,6 +153,7 @@ app.listen(PORT, HOST, () => {
   Allowed Origins: ${allowedOrigins.join(', ')}
   Mode:   Decentralized Architecture
   SIEM:   Enabled (5-minute processing)
+  EMII:   Enabled (Real-time USB monitoring)
   ================================================
   `);
 });

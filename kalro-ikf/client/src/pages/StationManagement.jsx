@@ -204,13 +204,12 @@ export default function StationManagement() {
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                   <div
                     style={{
-                      display: 'inline-block',
+                      display: 'flex',
                       width: '80px',
                       height: '80px',
                       backgroundColor: 'var(--kalro-red)',
                       color: 'white',
                       borderRadius: '50%',
-                      display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '32px',

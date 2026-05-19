@@ -28,6 +28,17 @@ function ConfPip({ score }) {
   </div>
 }
 
+function formatMinutes(value) {
+  if (value === null || value === undefined) return 'N/A';
+  return value < 60 ? `${value} mins` : `${Math.round(value)} mins`;
+}
+
+function threatColor(score) {
+  if (score >= 7) return 'var(--kalro-red-light)';
+  if (score >= 4) return 'var(--yellow)';
+  return 'var(--kalro-green)';
+}
+
 export default function Dashboard() {
   const [data,setData]=useState(null), [loading,setLoading]=useState(true), [resilience,setResilience]=useState(null), [pulseAlerts,setPulseAlerts]=useState([])
   const navigate=useNavigate(), { user }=useAuth()
@@ -101,6 +112,68 @@ export default function Dashboard() {
             <div className="stat-label">Avg Confidence</div>
             <div className="stat-value">{Math.round(summary.avg_confidence*100)}%</div>
             <div className="stat-sub">knowledge health</div>
+          </div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14,marginBottom:20}}>
+          <div className="stat-card accent" style={{padding:'22px 18px',minHeight:140}}>
+            <div className="stat-label">Avg Time to Detection (MTTD)</div>
+            <div className="stat-value" style={{fontSize:34}}>{metrics.avg_time_to_detect_min ? formatMinutes(metrics.avg_time_to_detect_min) : 'Data unavailable'}</div>
+            <div className="stat-sub">Target baseline: <strong>&lt; 15 mins</strong></div>
+          </div>
+          <div className="stat-card yellow" style={{padding:'22px 18px',minHeight:140}}>
+            <div className="stat-label">Avg Time to Resolution (MTTR)</div>
+            <div className="stat-value" style={{fontSize:34}}>{formatMinutes(metrics.avg_time_to_resolve_min)}</div>
+            <div className="stat-sub">Target baseline: <strong>&lt; 45 mins</strong></div>
+          </div>
+        </div>
+
+        <div className="card" style={{marginBottom:20,borderLeft:'3px solid var(--kalro-purple)'}}>
+          <div className="section-header"><h2>Knowledge-to-Response Correlation</h2></div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+            <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1}}>MTTR (Playbook Guided)</div>
+              <div style={{fontSize:28,fontWeight:700,margin:'10px 0'}}>{metrics.avg_mttr_playbook_min ? formatMinutes(metrics.avg_mttr_playbook_min) : 'N/A'}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Guided by knowledge artifacts</div>
+            </div>
+            <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1}}>MTTR (Manual Triage)</div>
+              <div style={{fontSize:28,fontWeight:700,margin:'10px 0'}}>{metrics.avg_mttr_manual_min ? formatMinutes(metrics.avg_mttr_manual_min) : 'N/A'}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Unguided response path</div>
+            </div>
+            <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1}}>Systemic Efficiency Gain</div>
+              <div style={{fontSize:28,fontWeight:700,margin:'10px 0',color:'var(--kalro-green)'}}>{metrics.resolution_speed_gain ? `+${metrics.resolution_speed_gain}%` : '—'}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Compared guided vs manual resolution</div>
+            </div>
+          </div>
+          <div style={{marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Knowledge Reuse Rate</div>
+              <div style={{fontSize:28,fontWeight:700,color:'var(--accent)'}}>{resilience?.knowledge_utilization_rate || 'N/A'}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Resolved incidents using institutional memory</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{marginBottom:20,borderLeft:'3px solid var(--kalro-red)'}}>
+          <div className="section-header"><h2>Governance & Risk Metrics</h2></div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
+            <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1}}>SLA Boundary Status</div>
+              <div style={{fontSize:28,fontWeight:700}}>{metrics.sla_nearing_count}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Incidents within 6 hours of SLA breach</div>
+            </div>
+            <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1}}>Calculated Threat Score</div>
+              <div style={{fontSize:28,fontWeight:700,color:threatColor(metrics.active_threat_index)}}>{metrics.active_threat_index?.toFixed(1) || '0.0'} / 10</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Live active incident risk index</div>
+            </div>
+            <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:'var(--text3)',textTransform:'uppercase',letterSpacing:1}}>Institutional Memory Growth</div>
+              <div style={{fontSize:28,fontWeight:700,color:'var(--kalro-green)'}}>+{metrics.knowledge_growth_velocity}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>New playbooks in last 30 days</div>
+            </div>
           </div>
         </div>
 

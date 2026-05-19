@@ -589,7 +589,6 @@ export default function IncidentDetail() {
                   onSave={() => load()}
                 />
               </div>
-            )}
 
             {/* NEW: GAME THEORY ADVISOR */}
             {isAnalyst && incident.status !== 'closed' && (

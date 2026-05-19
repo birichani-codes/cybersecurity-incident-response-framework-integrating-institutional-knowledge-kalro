@@ -95,14 +95,45 @@ function coverageRate(gaps) {
   return gaps.length?Math.round((gaps.filter(g=>g.covered).length/gaps.length)*100):0;
 }
 
-function computeMetrics(incidents) {
+function computeMetrics(incidents, knowledge=[]) {
   const resolved = incidents.filter(i=>['resolved','closed'].includes(i.status));
   const now = new Date();
   // SLA breach rate
   const active = incidents.filter(i=>!['resolved','closed'].includes(i.status));
   const breached = active.filter(i=>now>new Date(slaDeadline(i))).length;
   const sla_breach_rate = active.length?Math.round((breached/active.length)*100):0;
-  // avg time to resolve by severity (minutes)
+
+  const durationMinutes = (inc) => Math.round((new Date(inc.updated_at) - new Date(inc.created_at)) / 60000);
+  const resolvedWithDuration = resolved.filter(i=>i.created_at && i.updated_at);
+  const allDurations = resolvedWithDuration.map(durationMinutes);
+  const avg_time_to_resolve_min = allDurations.length?
+    Math.round(allDurations.reduce((sum, m) => sum + m, 0) / allDurations.length):null;
+
+  const guided = resolvedWithDuration.filter(i => (i.applied_defensive_routines?.length || 0) > 0 || (i.used_knowledge_ids?.length || 0) > 0);
+  const manual = resolvedWithDuration.filter(i => !((i.applied_defensive_routines?.length || 0) > 0 || (i.used_knowledge_ids?.length || 0) > 0));
+  const avg_mttr_playbook_min = guided.length ? Math.round(guided.map(durationMinutes).reduce((sum, m) => sum + m, 0) / guided.length) : null;
+  const avg_mttr_manual_min = manual.length ? Math.round(manual.map(durationMinutes).reduce((sum, m) => sum + m, 0) / manual.length) : null;
+  const resolution_speed_gain = (avg_mttr_playbook_min && avg_mttr_manual_min && avg_mttr_manual_min > 0)
+    ? Math.round(((avg_mttr_manual_min - avg_mttr_playbook_min) / avg_mttr_manual_min) * 1000) / 10
+    : 0;
+
+  const sixHoursMs = 6 * 60 * 60 * 1000;
+  const sla_nearing_count = active.filter(i => {
+    const deadline = new Date(slaDeadline(i));
+    return deadline > now && (deadline - now) <= sixHoursMs;
+  }).length;
+
+  const threatWeight = { critical: 3, high: 2, medium: 1, low: 0.5 };
+  const totalThreat = active.reduce((sum, i) => sum + (threatWeight[i.severity] || 0), 0);
+  const maxThreat = active.length * 3;
+  const active_threat_index = maxThreat ? Math.round((totalThreat / maxThreat) * 100) / 10 : 0;
+
+  const growthWindow = 30 * 24 * 60 * 60 * 1000;
+  const knowledge_growth_velocity = knowledge.filter(k => k.knowledge_type === 'playbook' && new Date(k.created_at) >= new Date(now - growthWindow)).length;
+
+  // avg time to detect cannot be computed without raw alert arrival time metadata
+  const avg_time_to_detect_min = null;
+
   const ttrBySeverity = {};
   ['critical','high','medium','low'].forEach(sev => {
     const inc = resolved.filter(i=>i.severity===sev&&i.created_at&&i.updated_at);
@@ -113,12 +144,26 @@ function computeMetrics(incidents) {
       ttrBySeverity[sev] = { count:inc.length, p50_min:Math.round(p50), p90_min:Math.round(p90) };
     }
   });
+
   // recurrence: incidents of same type within 90 days of a previous one
   const typeMap = {};
   incidents.forEach(i=>{ if (!typeMap[i.type]) typeMap[i.type]=[]; typeMap[i.type].push(new Date(i.created_at)); });
   let recurrences=0;
   Object.values(typeMap).forEach(dates => { dates.sort((a,b)=>a-b); for (let j=1;j<dates.length;j++) { if ((dates[j]-dates[j-1])<90*24*3600000) { recurrences++; break; } } });
-  return { sla_breach_rate, ttr_by_severity:ttrBySeverity, recurrence_count:recurrences };
+
+  return {
+    sla_breach_rate,
+    ttr_by_severity:ttrBySeverity,
+    recurrence_count:recurrences,
+    avg_time_to_resolve_min,
+    avg_time_to_detect_min,
+    avg_mttr_playbook_min,
+    avg_mttr_manual_min,
+    resolution_speed_gain,
+    sla_nearing_count,
+    active_threat_index,
+    knowledge_growth_velocity
+  };
 }
 
 router.get('/dashboard', authenticate, (req,res) => {
@@ -129,7 +174,7 @@ router.get('/dashboard', authenticate, (req,res) => {
   incidents.forEach(i=>{ byStatus[i.status]=(byStatus[i.status]||0)+1; bySeverity[i.severity]=(bySeverity[i.severity]||0)+1; byType[i.type]=(byType[i.type]||0)+1; });
   const avgConf=active.length?parseFloat((active.reduce((s,k)=>s+k.confidence_score,0)/active.length).toFixed(2)):0;
   const gaps=computeGaps(incidents,knowledge);
-  const metrics=computeMetrics(incidents);
+  const metrics=computeMetrics(incidents,knowledge);
   const pir_completion_rate=incidents.filter(i=>i.status==='closed').length?
     Math.round((pirs.length/incidents.filter(i=>i.status==='closed').length)*100):0;
   const csf_function_counts = computeCsfFunctionCounts(incidents);

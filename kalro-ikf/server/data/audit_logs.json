@@ -1,5 +1,122 @@
 [
   {
+    "id": "log2c5f949a",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-19T19:12:19.527Z"
+  },
+  {
+    "id": "logf1fb641c",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc4",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.3448275862068965
+    },
+    "created_at": "2026-05-19T08:47:03.035Z"
+  },
+  {
+    "id": "log77cfa04a",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc4",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.3448275862068965
+    },
+    "created_at": "2026-05-19T08:47:02.810Z"
+  },
+  {
+    "id": "logcd3bd8b6",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-19T08:39:53.756Z"
+  },
+  {
+    "id": "log54854883",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc3",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.3448275862068965
+    },
+    "created_at": "2026-05-14T09:41:14.013Z"
+  },
+  {
+    "id": "logcd0b8556",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc3",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.3448275862068965
+    },
+    "created_at": "2026-05-14T09:41:13.834Z"
+  },
+  {
+    "id": "log89759d63",
+    "user_id": "u1",
+    "action": "UPDATE_INCIDENT_BRIEFING",
+    "target_type": "incident",
+    "target_id": "inc3",
+    "metadata": {
+      "active": true,
+      "agenda": ""
+    },
+    "created_at": "2026-05-14T09:41:13.445Z"
+  },
+  {
+    "id": "log118e9355",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc3",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.3448275862068965
+    },
+    "created_at": "2026-05-14T09:39:43.310Z"
+  },
+  {
+    "id": "logddb07fad",
+    "user_id": "u1",
+    "action": "CALCULATE_GAME_THEORY",
+    "target_type": "incident",
+    "target_id": "inc3",
+    "metadata": {
+      "recommendation": "isolate",
+      "confidence": 0.3448275862068965
+    },
+    "created_at": "2026-05-14T09:39:43.185Z"
+  },
+  {
+    "id": "log3b33ec96",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-05-14T04:59:33.543Z"
+  },
+  {
     "id": "log088a9437",
     "user_id": "u1",
     "action": "LOGIN",

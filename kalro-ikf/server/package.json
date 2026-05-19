@@ -14,6 +14,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.4",
     "pdfkit": "^0.14.0",
+    "socket.io": "^4.7.5",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

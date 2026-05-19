@@ -63,7 +63,7 @@
     "assigned_to": "u4",
     "sla_deadline": "2024-06-18T04:10:00Z",
     "created_at": "2024-06-18T02:10:00Z",
-    "updated_at": "2024-06-18T09:30:00Z",
+    "updated_at": "2026-05-14T09:41:13.437Z",
     "strategic_decisions": [
       {
         "id": "dec1sy8wh2",
@@ -172,8 +172,132 @@
         "created_at": "2026-05-01T15:35:49.036Z",
         "implemented_at": null,
         "outcome": null
+      },
+      {
+        "id": "deccs7z1oz",
+        "decision_type": "isolate",
+        "confidence": 0.3448275862068965,
+        "reasoning": "Move A (Isolate) is recommended. Although Business Cost is $2000, the Risk to the asset is too high for the current 'Balanced' setting (Risk Appetite: 0.5). Station Multiplier: 1x, Attacker Risk Weight: 0.2.",
+        "user_id": "u1",
+        "payoff_matrix": {
+          "isolation": {
+            "businessCost": 2000,
+            "riskReduction": 0.784,
+            "knowledgeGain": 0.3,
+            "score": 5.84
+          },
+          "monitoring": {
+            "businessCost": 100,
+            "riskReduction": 0.32000000000000006,
+            "knowledgeGain": 0.8,
+            "score": 3.24
+          },
+          "attackerGain": 2000,
+          "defenseCost": 100,
+          "riskAppetite": 0.5,
+          "stationMultiplier": 1,
+          "attackerRiskWeight": 0.2
+        },
+        "created_at": "2026-05-14T09:39:43.152Z",
+        "implemented_at": null,
+        "outcome": null
+      },
+      {
+        "id": "deca1wgc7c",
+        "decision_type": "isolate",
+        "confidence": 0.3448275862068965,
+        "reasoning": "Move A (Isolate) is recommended. Although Business Cost is $2000, the Risk to the asset is too high for the current 'Balanced' setting (Risk Appetite: 0.5). Station Multiplier: 1x, Attacker Risk Weight: 0.2.",
+        "user_id": "u1",
+        "payoff_matrix": {
+          "isolation": {
+            "businessCost": 2000,
+            "riskReduction": 0.784,
+            "knowledgeGain": 0.3,
+            "score": 5.84
+          },
+          "monitoring": {
+            "businessCost": 100,
+            "riskReduction": 0.32000000000000006,
+            "knowledgeGain": 0.8,
+            "score": 3.24
+          },
+          "attackerGain": 2000,
+          "defenseCost": 100,
+          "riskAppetite": 0.5,
+          "stationMultiplier": 1,
+          "attackerRiskWeight": 0.2
+        },
+        "created_at": "2026-05-14T09:39:43.283Z",
+        "implemented_at": null,
+        "outcome": null
+      },
+      {
+        "id": "decew2f5zg",
+        "decision_type": "isolate",
+        "confidence": 0.3448275862068965,
+        "reasoning": "Move A (Isolate) is recommended. Although Business Cost is $2000, the Risk to the asset is too high for the current 'Balanced' setting (Risk Appetite: 0.5). Station Multiplier: 1x, Attacker Risk Weight: 0.2.",
+        "user_id": "u1",
+        "payoff_matrix": {
+          "isolation": {
+            "businessCost": 2000,
+            "riskReduction": 0.784,
+            "knowledgeGain": 0.3,
+            "score": 5.84
+          },
+          "monitoring": {
+            "businessCost": 100,
+            "riskReduction": 0.32000000000000006,
+            "knowledgeGain": 0.8,
+            "score": 3.24
+          },
+          "attackerGain": 2000,
+          "defenseCost": 100,
+          "riskAppetite": 0.5,
+          "stationMultiplier": 1,
+          "attackerRiskWeight": 0.2
+        },
+        "created_at": "2026-05-14T09:41:13.810Z",
+        "implemented_at": null,
+        "outcome": null
+      },
+      {
+        "id": "dec4nm2qdu",
+        "decision_type": "isolate",
+        "confidence": 0.3448275862068965,
+        "reasoning": "Move A (Isolate) is recommended. Although Business Cost is $2000, the Risk to the asset is too high for the current 'Balanced' setting (Risk Appetite: 0.5). Station Multiplier: 1x, Attacker Risk Weight: 0.2.",
+        "user_id": "u1",
+        "payoff_matrix": {
+          "isolation": {
+            "businessCost": 2000,
+            "riskReduction": 0.784,
+            "knowledgeGain": 0.3,
+            "score": 5.84
+          },
+          "monitoring": {
+            "businessCost": 100,
+            "riskReduction": 0.32000000000000006,
+            "knowledgeGain": 0.8,
+            "score": 3.24
+          },
+          "attackerGain": 2000,
+          "defenseCost": 100,
+          "riskAppetite": 0.5,
+          "stationMultiplier": 1,
+          "attackerRiskWeight": 0.2
+        },
+        "created_at": "2026-05-14T09:41:13.962Z",
+        "implemented_at": null,
+        "outcome": null
       }
-    ]
+    ],
+    "briefing": {
+      "room_id": "kalro-incident-inc3",
+      "room_url": "https://meet.jit.si/kalro-incident-inc3",
+      "agenda": "",
+      "active": true,
+      "started_at": "2026-05-14T09:41:13.437Z",
+      "ended_at": null
+    }
   },
   {
     "id": "inc4",
@@ -546,6 +670,64 @@
           "attackerRiskWeight": 0.2
         },
         "created_at": "2026-05-10T18:01:04.031Z",
+        "implemented_at": null,
+        "outcome": null
+      },
+      {
+        "id": "dece0m4umh",
+        "decision_type": "isolate",
+        "confidence": 0.3448275862068965,
+        "reasoning": "Move A (Isolate) is recommended. Although Business Cost is $2000, the Risk to the asset is too high for the current 'Balanced' setting (Risk Appetite: 0.5). Station Multiplier: 1x, Attacker Risk Weight: 0.2.",
+        "user_id": "u1",
+        "payoff_matrix": {
+          "isolation": {
+            "businessCost": 2000,
+            "riskReduction": 0.784,
+            "knowledgeGain": 0.3,
+            "score": 5.84
+          },
+          "monitoring": {
+            "businessCost": 100,
+            "riskReduction": 0.32000000000000006,
+            "knowledgeGain": 0.8,
+            "score": 3.24
+          },
+          "attackerGain": 2000,
+          "defenseCost": 100,
+          "riskAppetite": 0.5,
+          "stationMultiplier": 1,
+          "attackerRiskWeight": 0.2
+        },
+        "created_at": "2026-05-19T08:47:02.775Z",
+        "implemented_at": null,
+        "outcome": null
+      },
+      {
+        "id": "decmxl4qe8",
+        "decision_type": "isolate",
+        "confidence": 0.3448275862068965,
+        "reasoning": "Move A (Isolate) is recommended. Although Business Cost is $2000, the Risk to the asset is too high for the current 'Balanced' setting (Risk Appetite: 0.5). Station Multiplier: 1x, Attacker Risk Weight: 0.2.",
+        "user_id": "u1",
+        "payoff_matrix": {
+          "isolation": {
+            "businessCost": 2000,
+            "riskReduction": 0.784,
+            "knowledgeGain": 0.3,
+            "score": 5.84
+          },
+          "monitoring": {
+            "businessCost": 100,
+            "riskReduction": 0.32000000000000006,
+            "knowledgeGain": 0.8,
+            "score": 3.24
+          },
+          "attackerGain": 2000,
+          "defenseCost": 100,
+          "riskAppetite": 0.5,
+          "stationMultiplier": 1,
+          "attackerRiskWeight": 0.2
+        },
+        "created_at": "2026-05-19T08:47:03.026Z",
         "implemented_at": null,
         "outcome": null
       }
