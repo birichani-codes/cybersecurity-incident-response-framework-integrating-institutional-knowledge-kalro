@@ -135,6 +135,15 @@ io.on('connection', (socket) => {
 
 console.log('[EMII] External Media Incident Integration initialized');
 
+// Initialize scheduled report sender (daily/cron)
+try {
+  const reportScheduler = require('./services/reportScheduler');
+  reportScheduler.initializeReportScheduler();
+  console.log('[ReportScheduler] Initialized');
+} catch (err) {
+  console.warn('[ReportScheduler] Failed to initialize scheduler:', err.message || err);
+}
+
 // 8. GLOBAL ERROR HANDLING
 app.use((err, req, res, next) => {
   console.error('System Error:', err.stack);

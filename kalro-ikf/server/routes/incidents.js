@@ -99,6 +99,20 @@ router.get('/stats', authenticate, (req,res) => {
   res.json(stats);
 });
 
+router.get('/stream', authenticate, (req,res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  const incidents = read('incidents').sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 50);
+  res.write(`data: ${JSON.stringify({ type: 'initial', data: incidents })}\n\n`);
+  siemSync.registerStream(res);
+  const pingInterval = setInterval(() => { try { res.write(`:ping\n\n`); } catch(err) { clearInterval(pingInterval); } }, 30000);
+  req.on('close', () => { clearInterval(pingInterval); });
+});
+
 router.get('/:id', authenticate, (req,res) => {
   const incidents = read('incidents');
   const inc = incidents.find(i => i.id===req.params.id);

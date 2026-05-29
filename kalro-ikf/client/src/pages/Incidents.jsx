@@ -25,9 +25,8 @@ export default function Incidents() {
     const startStream = () => {
       try {
         const token = localStorage.getItem('token');
-        eventSource = new EventSource(`/api/incidents/stream`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const streamUrl = token ? `/api/incidents/stream?token=${encodeURIComponent(token)}` : '/api/incidents/stream';
+        eventSource = new EventSource(streamUrl);
 
         eventSource.addEventListener('message', (e) => {
           try {

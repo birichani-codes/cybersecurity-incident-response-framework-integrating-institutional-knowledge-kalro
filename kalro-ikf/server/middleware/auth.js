@@ -2,10 +2,17 @@ const jwt = require('jsonwebtoken');
 const { read } = require('../store');
 const JWT_SECRET = process.env.JWT_SECRET || 'kalro-ikf-secret-2024';
 const authenticate = (req, res, next) => {
+  let token = null;
   const h = req.headers.authorization;
-  if (!h || !h.startsWith('Bearer ')) return res.status(401).json({ error:'No token provided' });
+  if (h && h.startsWith('Bearer ')) {
+    token = h.split(' ')[1];
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+
+  if (!token) return res.status(401).json({ error:'No token provided' });
   try {
-    const d = jwt.verify(h.split(' ')[1], JWT_SECRET);
+    const d = jwt.verify(token, JWT_SECRET);
     const user = read('users').find(u => u.id === d.id);
     if (!user) return res.status(401).json({ error:'User not found' });
     req.user = {
