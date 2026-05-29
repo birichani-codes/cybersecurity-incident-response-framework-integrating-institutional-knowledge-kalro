@@ -14,32 +14,79 @@ export default function Incidents() {
   const [filters,setFilters]=useState({status:'',severity:'',type:'',is_major:''})
   const [form,setForm]=useState({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false,station_id:'Site A'})
   const [submitting,setSubmitting]=useState(false), [error,setError]=useState('')
+  const [streamStatus, setStreamStatus] = useState('connecting')
   const navigate=useNavigate(), { isAnalyst }=useAuth()
   const [sp]=useSearchParams()
+
+  // Real-time incident streaming via EventSource
+  useEffect(() => {
+    let eventSource = null;
+    
+    const startStream = () => {
+      try {
+        const token = localStorage.getItem('token');
+        eventSource = new EventSource(`/api/incidents/stream`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        eventSource.addEventListener('message', (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'initial') {
+              // Load initial incidents
+              setIncidents(msg.data);
+              setStreamStatus('connected');
+              setLoading(false);
+            } else if (msg.type === 'new_incidents') {
+              // Add new incidents to the top
+              setIncidents(prev => [...msg.data, ...prev]);
+            }
+          } catch (err) {
+            console.error('Failed to parse SSE message:', err);
+          }
+        });
+
+        eventSource.addEventListener('error', (e) => {
+          console.error('EventSource error:', e);
+          setStreamStatus('disconnected');
+          eventSource?.close();
+          // Reconnect after 3 seconds
+          setTimeout(startStream, 3000);
+        });
+
+      } catch (err) {
+        console.error('Failed to start event stream:', err);
+        setStreamStatus('error');
+        // Fallback to polling
+        setTimeout(startStream, 5000);
+      }
+    };
+
+    startStream();
+    return () => eventSource?.close();
+  }, []);
 
   useEffect(()=>{
     const init={status:sp.get('status')||'',severity:sp.get('severity')||'',type:'',is_major:sp.get('is_major')||'',station_id:sp.get('station_id')||''}
     setFilters(init)
   },[])
 
-  const load=()=>{
-    setLoading(true)
-    const p=new URLSearchParams()
-    if(filters.status) p.set('status',filters.status)
-    if(filters.severity) p.set('severity',filters.severity)
-    if(filters.type) p.set('type',filters.type)
-    if(filters.station_id) p.set('station_id',filters.station_id)
-    if(filters.is_major) p.set('is_major','true')
-    api.get('/incidents?'+p).then(r=>setIncidents(r.data)).finally(()=>setLoading(false))
-  }
-  useEffect(()=>{ load() },[filters])
+  // Filter incidents client-side
+  const filteredIncidents = incidents.filter(i => {
+    if(filters.status && i.status !== filters.status) return false
+    if(filters.severity && i.severity !== filters.severity) return false
+    if(filters.type && i.type !== filters.type) return false
+    if(filters.station_id && i.station_id !== filters.station_id) return false
+    if(filters.is_major && !i.is_major) return false
+    return true
+  })
 
   const handleCreate=async(e)=>{
     e.preventDefault(); setSubmitting(true); setError('')
     try{
       const ips=form.entities.split(',').map(s=>s.trim()).filter(Boolean)
       await api.post('/incidents',{...form,entities:ips.length?{ips}:{},is_major:form.is_major,station_id:form.station_id})
-      setShowModal(false); setForm({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false,station_id:'Site A'}); load()
+      setShowModal(false); setForm({title:'',type:'phishing',severity:'medium',description:'',entities:'',is_major:false,station_id:'Site A'})
     }catch(err){ setError(err.response?.data?.error||'Failed') }finally{ setSubmitting(false) }
   }
 
@@ -52,7 +99,10 @@ export default function Incidents() {
         </div>
       </div>
       <div className="page-body">
-        <div style={{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap',alignItems:'center'}}>
+          <div style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)'}}>
+            Stream: <span style={{color:streamStatus==='connected'?'var(--kalro-green)':streamStatus==='connecting'?'var(--yellow)':'var(--kalro-red)'}}>{streamStatus}</span>
+          </div>
           {[{key:'status',opts:['','open','investigating','escalated','resolved','closed'],label:'All Statuses'},
             {key:'severity',opts:['',...SEVS],label:'All Severities'},
             {key:'type',opts:['',...TYPES],label:'All Types'}].map(({key,opts,label})=>(
@@ -66,13 +116,13 @@ export default function Incidents() {
           {Object.values(filters).some(Boolean)&&<button className="btn btn-ghost btn-sm" onClick={()=>setFilters({status:'',severity:'',type:'',is_major:''})}>Clear</button>}
         </div>
 
-        {loading?<Loading/>:incidents.length===0?<EmptyState icon="⚡" title="No incidents found" sub="Try changing filters or log a new incident"/>:(
+        {loading?<Loading/>:filteredIncidents.length===0?<EmptyState icon="⚡" title="No incidents found" sub="Try changing filters or log a new incident"/>:(
           <div className="card" style={{padding:0,overflow:'hidden'}}>
             <div className="table-wrap">
               <table>
                 <thead><tr><th>Title</th><th>Type</th><th>Site</th><th>Severity</th><th>Status</th><th>SLA</th><th>Reported</th></tr></thead>
                 <tbody>
-                  {incidents.map(inc=>(
+                  {filteredIncidents.map(inc=>(
                     <tr key={inc.id} onClick={()=>navigate('/incidents/'+inc.id)}>
                       <td style={{maxWidth:260}}>
                         <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}}>

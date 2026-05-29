@@ -14,7 +14,12 @@ let usbDetect;
 try {
   usbDetect = require('usb-detection');
 } catch (err) {
-  console.warn('[EMII] usb-detection is unavailable. USB monitoring will be disabled.', err.message);
+  console.warn('[EMII] Warning: usb-detection module not available. USB monitoring disabled.');
+  // Create mock implementation
+  usbDetect = {
+    startMonitoring: () => {},
+    on: (event, callback) => {}
+  };
 }
 const { read, write } = require('../store');
 const alertEnrichment = require('./alertEnrichment');
@@ -60,11 +65,6 @@ const ASSET_SENSITIVITY = {
  * Initialize USB detection monitoring
  */
 function initializeUSBMonitoring(io) {
-  if (!usbDetect) {
-    console.warn('[EMII] USB monitoring disabled because usb-detection is unavailable.');
-    return;
-  }
-
   console.log('[EMII] Initializing USB detection monitoring...');
 
   // Start monitoring USB devices
@@ -174,6 +174,9 @@ function analyzeUSBDevice(eventData, io) {
 
   // Log the event
   logUSBEvent(eventData);
+
+  // Persist a system notification so the event shows up in the app dashboard and notifications feed
+  createEMIINotification(eventData, incidentData, isAuthorized);
 
   // If unauthorized, create an incident
   if (!isAuthorized) {
@@ -287,6 +290,38 @@ function logUSBEvent(eventData) {
   write('audit_logs', auditLogs);
 }
 
+function createEMIINotification(eventData, incidentData, isAuthorized) {
+  const notifications = read('notifications') || [];
+  const title = isAuthorized
+    ? `Authorized USB device connected: ${eventData.device.deviceName}`
+    : `Unauthorized USB device detected: ${eventData.device.deviceName}`;
+  const message = isAuthorized
+    ? `Authorized device ${eventData.device.deviceName} (${eventData.device.serialNumber}) connected at ${eventData.stationId}.`
+    : `Unauthorized device ${eventData.device.deviceName} (${eventData.device.serialNumber}) detected at ${eventData.stationId}. Immediate investigation recommended.`;
+
+  const notification = {
+    id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    title,
+    message,
+    type: isAuthorized ? 'info' : 'incident_alert',
+    severity: isAuthorized ? 'low' : 'critical',
+    recipient_id: null,
+    recipient_station_id: null,
+    related_incident_id: incidentData?.id || null,
+    action_url: incidentData?.id ? `/incidents/${incidentData.id}` : null,
+    read: false,
+    created_at: new Date().toISOString(),
+    created_by: 'SYSTEM'
+  };
+
+  notifications.unshift(notification);
+  if (notifications.length > 1000) {
+    notifications.splice(1000);
+  }
+  write('notifications', notifications);
+  return notification;
+}
+
 /**
  * Get authorized media registry
  */
@@ -383,10 +418,8 @@ function getEMIIStats() {
  * Stop USB monitoring
  */
 function stopUSBMonitoring() {
-  if (usbDetect && typeof usbDetect.stopMonitoring === 'function') {
-    usbDetect.stopMonitoring();
-    console.log('[EMII] USB monitoring stopped');
-  }
+  usbDetect.stopMonitoring();
+  console.log('[EMII] USB monitoring stopped');
 }
 
 module.exports = {

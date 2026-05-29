@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { io } from 'socket.io-client'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 
@@ -11,9 +12,58 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     if (!user) return
-    loadNotifications()
+
+    const loadNotificationsAndSocket = async () => {
+      await loadNotifications()
+    }
+
+    loadNotificationsAndSocket()
     const interval = setInterval(loadNotifications, 10000) // Refresh every 10 seconds
-    return () => clearInterval(interval)
+
+    const serverOrigin = window.location.hostname === 'localhost'
+      ? 'http://localhost:10000'
+      : window.location.origin
+
+    const socket = io(serverOrigin, { transports: ['websocket'] })
+
+    const pushLiveNotification = (event, source) => {
+      const title = event.title || (source === 'usb_event' ? `USB ${event.eventType === 'usb_removal' ? 'removed' : 'inserted'}` : 'External Media Alert')
+      const message = event.description || event.message ||
+        `Device ${event.device?.deviceName || event.device?.serialNumber || 'unknown'} ${event.eventType === 'usb_removal' ? 'removed' : 'connected'} at ${event.stationId || event.workstationId || 'Unknown station'}`
+      const severity = source === 'emii_alert'
+        ? (event.requires_attention ? 'critical' : 'high')
+        : 'normal'
+      const action_url = event.related_incident_id || event.id ? `/incidents/${event.related_incident_id || event.id}` : null
+
+      const liveNotif = {
+        id: `live-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        title,
+        message,
+        type: 'incident_alert',
+        severity,
+        read: false,
+        created_at: new Date().toISOString(),
+        action_url
+      }
+
+      setNotifs(prev => [liveNotif, ...prev].slice(0, 25))
+      setUnread(prev => prev + 1)
+    }
+
+    socket.on('connect', () => {
+      console.debug('[Socket] connected to EMII events')
+    })
+    socket.on('disconnect', () => {
+      console.debug('[Socket] disconnected from EMII events')
+    })
+    socket.on('emii_alert', event => pushLiveNotification(event, 'emii_alert'))
+    socket.on('usb_event', event => pushLiveNotification(event, 'usb_event'))
+    socket.on('connect_error', err => console.error('[Socket] connect error', err))
+
+    return () => {
+      clearInterval(interval)
+      socket.disconnect()
+    }
   }, [user])
 
   const loadNotifications = async () => {

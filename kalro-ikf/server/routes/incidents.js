@@ -8,6 +8,7 @@ const gameTheory = require('../logic/game-theory');
 const sosioTechnical = require('../logic/socio-technical');
 const defensiveRoutines = require('../logic/defensive-routines');
 const email = require('../logic/email');
+const siemSync = require('../services/siemSync');
 const router = express.Router();
 
 const SLA_HOURS = { critical:2, high:4, medium:8, low:24 };
@@ -721,6 +722,29 @@ router.get('/dashboard/resilience-metrics', authenticate, (req,res) => {
   try {
     const metrics = gameTheory.calculateResilienceMetrics();
     res.json(metrics);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/stream', authenticate, (req,res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  const incidents = read('incidents').sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 50);
+  res.write(`data: ${JSON.stringify({ type: 'initial', data: incidents })}\n\n`);
+  siemSync.registerStream(res);
+  const pingInterval = setInterval(() => { try { res.write(`:ping\n\n`); } catch(err) { clearInterval(pingInterval); } }, 30000);
+  req.on('close', () => { clearInterval(pingInterval); });
+});
+
+router.post('/sync-siem', authenticate, requireMinRole('super_admin'), async (req,res) => {
+  try {
+    const newIncidents = await siemSync.syncIncidents();
+    res.json({ success: true, new_incidents_count: newIncidents.length });
   } catch(err) {
     res.status(500).json({ error: err.message });
   }

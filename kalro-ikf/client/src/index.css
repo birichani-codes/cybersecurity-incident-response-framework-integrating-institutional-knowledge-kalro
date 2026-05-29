@@ -68,8 +68,8 @@ input:focus,textarea:focus,select:focus{ border-color:var(--accent); box-shadow:
 .page-header{ padding:28px 32px 0; border-bottom:1px solid var(--border); }
 .page-header h1{ font-family:var(--font-mono); font-size:20px; font-weight:700; color:var(--text); letter-spacing:-0.5px; }
 .page-header p{ color:var(--text2); font-size:14px; margin-top:4px; padding-bottom:20px; }
-.page-body{ padding:28px 32px; }
-
+  .subtitle{ color:var(--text2); font-size:15px; font-weight:500; line-height:1.6; }
+  .section-subtitle{ color:var(--text2); font-size:13px; font-weight:500; line-height:1.6; }
 /* Cards */
 .card{ background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
 .card:hover{ border-color:var(--border2); }

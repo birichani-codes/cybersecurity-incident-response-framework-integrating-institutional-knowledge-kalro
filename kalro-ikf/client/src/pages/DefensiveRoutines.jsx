@@ -76,7 +76,7 @@ export default function DefensiveRoutines() {
         <h1 style={{fontFamily:'var(--font-mono)',fontSize:28,marginBottom:8,color:'var(--text)'}}>
           Defensive Routines Library
         </h1>
-        <p style={{color:'var(--text3)',fontSize:14}}>
+        <p className="subtitle">
           Institutional knowledge repository for responding to security incidents
         </p>
       </div>
@@ -306,7 +306,7 @@ export default function DefensiveRoutines() {
           <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20}}>
             <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:20}}>
               <h3 style={{fontSize:16,fontFamily:'var(--font-mono)',color:'var(--text)',marginBottom:16}}>Routine Editor</h3>
-              <p style={{fontSize:13,color:'var(--text3)',marginBottom:20}}>
+              <p className="section-subtitle" style={{marginBottom:20}}>
                 Convert completed PIRs into validated defensive routines that map to the Game Theory payoff matrix and NIST CSF.
               </p>
 
@@ -387,7 +387,7 @@ export default function DefensiveRoutines() {
 
               <div style={{marginBottom:16}}>
                 <label style={{fontSize:12,color:'var(--text3)',fontFamily:'var(--font-mono)',display:'block',marginBottom:6}}>ROUTINE CONTENT</label>
-                <textarea rows={8} value={editorForm.content} onChange={e => setEditorForm(f => ({ ...f, content: e.target.value }))} style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text)',fontFamily:'inherit',fontFamily:'monospace'}}/>
+                <textarea rows={8} value={editorForm.content} onChange={e => setEditorForm(f => ({ ...f, content: e.target.value }))} style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text)',fontFamily:'monospace'}}/>
               </div>
 
               {editorError && <div className="alert alert-error" style={{marginBottom:16}}>{editorError}</div>}
@@ -453,7 +453,7 @@ export default function DefensiveRoutines() {
       )}
 
       {/* Footer Note */}
-      <div style={{marginTop:32,padding:16,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,color:'var(--text3)'}}>
+      <div style={{marginTop:32,padding:16,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,color:'var(--text2)'}}>
         <strong style={{color:'var(--text2)'}}>💡 Pro Tip:</strong> Defensive routines are continuously refined based on incident outcomes. Link knowledge entries to routines to build institutional memory and improve response effectiveness over time.
       </div>
     </div>

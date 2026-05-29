@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { Badge, Loading, timeAgo, SlaIndicator } from '../components/Shared'
+import EMIILiveFeed from '../components/EMIILiveFeed'
 import { useAuth } from '../context/AuthContext'
 
 const SEV = { critical:'var(--kalro-red-light)', high:'var(--orange)', medium:'var(--yellow)', low:'var(--green)' }
@@ -80,6 +81,9 @@ export default function Dashboard() {
             ⏱ {sla_breached.length} incident{sla_breached.length>1?'s':''} have breached SLA deadlines — {sla_breached.map(i=>i.title).join(', ')}
           </div>
         )}
+
+        {/* EMII Live Feed */}
+        <EMIILiveFeed/>
 
         {/* Stats */}
         <div className="stats-grid" style={{gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',marginBottom:20}}>

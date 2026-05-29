@@ -8,7 +8,13 @@ const authenticate = (req, res, next) => {
     const d = jwt.verify(h.split(' ')[1], JWT_SECRET);
     const user = read('users').find(u => u.id === d.id);
     if (!user) return res.status(401).json({ error:'User not found' });
-    req.user = { id:user.id, name:user.name, email:user.email, role:user.role };
+    req.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      station_id: user.station_id || user.stationId || null
+    };
     next();
   } catch(e) { res.status(401).json({ error:'Invalid or expired token' }); }
 };

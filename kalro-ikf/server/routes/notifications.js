@@ -53,10 +53,11 @@ router.get('/', authenticate, (req, res) => {
   const notifs = read('notifications');
   const user = req.user;
 
-  // Get notifications for this user (by ID or station)
+  // Get notifications for this user (by ID, station, or global system notifications)
   const userNotifs = notifs.filter(n => 
     n.recipient_id === user.id || 
     n.recipient_station_id === user.station_id ||
+    (n.recipient_id == null && n.recipient_station_id == null) ||
     (n.type === 'escalation' && user.role === 'super_admin')
   );
 
@@ -75,10 +76,11 @@ router.get('/unread', authenticate, (req, res) => {
   const user = req.user;
 
   const userNotifs = notifs.filter(n => 
-    (n.recipient_id === user.id || 
+    ((n.recipient_id === user.id || 
     n.recipient_station_id === user.station_id ||
+    (n.recipient_id == null && n.recipient_station_id == null) ||
     (n.type === 'escalation' && user.role === 'super_admin')) &&
-    !n.read
+    !n.read)
   );
 
   res.json({ unread_count: userNotifs.length });
@@ -95,6 +97,7 @@ router.get('/summary', authenticate, (req, res) => {
   const userNotifs = notifs.filter(n => 
     n.recipient_id === user.id || 
     n.recipient_station_id === user.station_id ||
+    (n.recipient_id == null && n.recipient_station_id == null) ||
     (n.type === 'escalation' && user.role === 'super_admin')
   );
 
