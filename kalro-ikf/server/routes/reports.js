@@ -243,6 +243,23 @@ router.post('/schedule-email', authenticate, requireRole('super_admin'), async (
   }
 });
 
+router.get('/download', authenticate, requireRole('super_admin'), async (req, res) => {
+  try {
+    const metrics = gameTheory.calculateResilienceMetrics();
+    const stsReport = socioTechnical.generateResiliencyReport();
+    const reportData = { metrics, stsReport };
+    const pdfBuffer = await email.createResilienceReportPdf(reportData);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="KALRO-Resilience-Report.pdf"');
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error('[Reports] Failed to generate PDF download', err);
+    res.status(500).json({ error: 'Failed to generate report PDF' });
+  }
+});
+
 router.get('/summary', authenticate, requireRole('super_admin'), (req,res) => {
   const incidents=read('incidents'),knowledge=read('knowledge'),users=read('users'),logs=read('audit_logs');
   const active=knowledge.filter(k=>k.status==='active');
