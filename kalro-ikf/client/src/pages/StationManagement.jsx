@@ -124,24 +124,27 @@ export default function StationManagement() {
             color: 'var(--kalro-red)'
           }}
         >
-          <h3 style={{ margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '10px', color: '#ffffff' }}>
             🚨 Network Awareness: Active Major Incidents
           </h3>
+
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
             {majorIncidents.slice(0, 5).map(incident => (
-              <div
+             <div
                 key={incident.id}
                 style={{
-                  backgroundColor: 'var(--bg1)',
+                  backgroundColor: '#0f172a',
                   padding: '10px',
                   borderRadius: '6px',
                   border: '1px solid var(--kalro-red)',
-                  minWidth: '200px'
+                  minWidth: '200px',
+                  color: '#ffffff'
                 }}
               >
                 <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '5px' }}>
                   {incident.title}
                 </div>
+
                 <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
                   📍 {incident.station_id || 'Site A'} • {incident.severity} • {incident.status}
                 </div>

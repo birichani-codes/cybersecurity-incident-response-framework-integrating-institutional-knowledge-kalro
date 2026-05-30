@@ -137,11 +137,13 @@ export default function SyncDashboard() {
         <div
           style={{
             padding: '15px',
-            backgroundColor: 'var(--kalro-green-pale)',
+            backgroundColor: '#0f172a',
             borderLeft: '4px solid var(--kalro-green)',
             marginBottom: '20px',
-            borderRadius: '4px'
+            borderRadius: '4px',
+            color: '#ffffff'
           }}
+
         >
           <h3>{selectedStation} - Detailed Status</h3>
           <p><strong>Total Incidents:</strong> {stationStatus.total_incidents}</p>
