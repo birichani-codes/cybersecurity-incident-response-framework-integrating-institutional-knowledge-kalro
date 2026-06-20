@@ -325,4 +325,41 @@ router.get('/defensive-routines/coverage', authenticate, (req,res) => {
   }
 });
 
+router.post('/:id/peer-review', authenticate, requireMinRole('analyst'), (req,res) => {
+  const { score, comments } = req.body;
+  if (score === undefined || score === null) return res.status(400).json({ error:'score required' });
+  const knowledge = read('knowledge');
+  const idx = knowledge.findIndex(k => k.id===req.params.id);
+  if (idx===-1) return res.status(404).json({ error:'Knowledge entry not found' });
+  const entry = knowledge[idx];
+  entry.peer_reviews = entry.peer_reviews || [];
+  const review = {
+    id:'pr'+uuid().slice(0,8),
+    reviewer_id:req.user.id,
+    score:Number(score),
+    comments:comments||'',
+    created_at:new Date().toISOString()
+  };
+  entry.peer_reviews.push(review);
+  entry.status = entry.status === 'active' ? 'active' : entry.status;
+  entry.validation_score = entry.peer_reviews.reduce((sum,r)=>sum+r.score,0) / entry.peer_reviews.length;
+  write('knowledge', knowledge);
+  logAction({ userId:req.user.id, action:'PEER_REVIEW_KNOWLEDGE', targetType:'knowledge', targetId:req.params.id, metadata:{ score:review.score } });
+  res.status(201).json(review);
+});
+
+router.get('/recommendations', authenticate, (req,res) => {
+  const userIncidents = read('incidents').filter(i => i.reported_by === req.user.id || i.assigned_to === req.user.id);
+  const historyTypes = [...new Set(userIncidents.map(i => i.type))];
+  const knowledge = read('knowledge').filter(k => k.status==='active');
+  const recommendations = knowledge.map(k => {
+    let score = k.confidence_score || 0.5;
+    if (historyTypes.some(ht => k.tags.some(t => t.toLowerCase().includes(ht.toLowerCase())))) score += 0.2;
+    if (k.defensive_routine && k.defensive_routine.success_rate) score += k.defensive_routine.success_rate * 0.2;
+    if (k.peer_reviews && k.peer_reviews.length) score += Math.min(0.2, k.peer_reviews.reduce((sum,r)=>sum+r.score,0)/k.peer_reviews.length / 5);
+    return { ...k, recommendation_score: Math.min(1.0, score) };
+  }).sort((a,b)=>b.recommendation_score-a.recommendation_score).slice(0,15);
+  res.json({ user_id:req.user.id, history_types:historyTypes, recommendations });
+});
+
 module.exports = router;

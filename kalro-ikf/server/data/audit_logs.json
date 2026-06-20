@@ -1,5 +1,16 @@
 [
   {
+    "id": "logf122006a",
+    "user_id": "u1",
+    "action": "LOGIN",
+    "target_type": null,
+    "target_id": null,
+    "metadata": {
+      "email": "alice@kalro.org"
+    },
+    "created_at": "2026-06-20T04:38:24.688Z"
+  },
+  {
     "id": "log706cdc4b",
     "user_id": "u1",
     "action": "LOGIN",

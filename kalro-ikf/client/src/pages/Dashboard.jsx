@@ -181,42 +181,43 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="card" style={{marginBottom:20,borderLeft:'3px solid var(--blue)'}}>
-          <div className="section-header"><h2>NIST CSF & Strategy</h2></div>
+        <div className="card" style={{marginBottom:20,borderLeft:'3px solid var(--blue)',background:'#0f172a',padding:16,borderRadius:12}}>
+          <div className="section-header"><h2 style={{color:'#ffffff',marginTop:0}}>NIST CSF & Strategy</h2></div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
-            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
-              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>CSF Maturity</div>
+            <div style={{padding:14,background:'#1e293b',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'#94a3b8',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>CSF Maturity</div>
               <div style={{fontSize:24,fontWeight:700,color:'var(--blue)',marginBottom:6}}>{summary.csf_maturity_score?.score ?? '—'}</div>
-              <div style={{fontSize:12,color:'var(--text2)'}}>{summary.csf_maturity_score?.label ?? 'Evaluating'}</div>
+              <div style={{fontSize:12,color:'#cbd5e1'}}>{summary.csf_maturity_score?.label ?? 'Evaluating'}</div>
             </div>
-            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
-              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Protect (PR.AC) Compliance</div>
+            <div style={{padding:14,background:'#1e293b',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'#94a3b8',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Protect (PR.AC) Compliance</div>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                <div style={{flex:1,height:8,background:'var(--bg4)',borderRadius:4,overflow:'hidden'}}><div style={{width:(summary.pr_ac_compliance||0)+'%',height:'100%',background:'var(--blue)',borderRadius:4}}/></div>
-                <span style={{fontFamily:'var(--font-mono)',fontSize:12}}>{summary.pr_ac_compliance||0}%</span>
+                <div style={{flex:1,height:8,background:'#334155',borderRadius:4,overflow:'hidden'}}><div style={{width:(summary.pr_ac_compliance||0)+'%',height:'100%',background:'var(--blue)',borderRadius:4}}/></div>
+                <span style={{fontFamily:'var(--font-mono)',fontSize:12,color:'#ffffff'}}>{summary.pr_ac_compliance||0}%</span>
               </div>
-              <div style={{fontSize:12,color:'var(--text3)'}}>Coverage for critical access/control incidents</div>
+              <div style={{fontSize:12,color:'#94a3b8'}}>Coverage for critical access/control incidents</div>
             </div>
-            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
-              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Recommended Action</div>
+            <div style={{padding:14,background:'#1e293b',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'#94a3b8',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Recommended Action</div>
               <div style={{fontSize:18,fontWeight:700,color:'var(--kalro-red)'}}>{summary.recommended_countermeasure || 'Review'}</div>
-              <div style={{fontSize:12,color:'var(--text3)',marginTop:8}}>{summary.recommended_reasoning || 'No strategy available'}</div>
+              <div style={{fontSize:12,color:'#cbd5e1',marginTop:8}}>{summary.recommended_reasoning || 'No strategy available'}</div>
             </div>
-            <div style={{padding:14,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12}}>
-              <div style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Threat Intent</div>
-              <div style={{fontSize:14,color:'var(--text)'}}>{summary.attacker_prediction || 'Unable to infer attacker intent.'}</div>
+            <div style={{padding:14,background:'#1e293b',border:'1px solid var(--border)',borderRadius:12}}>
+              <div style={{fontSize:11,color:'#94a3b8',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Threat Intent</div>
+              <div style={{fontSize:14,color:'#ffffff'}}>{summary.attacker_prediction || 'Unable to infer attacker intent.'}</div>
             </div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginTop:16}}>
             {Object.entries(data.csf_function_counts || {}).map(([key,value]) => (
-              <div key={key} style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:12,textAlign:'center'}}>
-                <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text3)',marginBottom:4}}>{key}</div>
-                <div style={{fontSize:20,fontWeight:700,color:'var(--text)'}}>{value}</div>
-                <div style={{fontSize:11,color:'var(--text3)'}}>{key === 'PR' ? 'Protect' : key === 'DE' ? 'Detect' : key === 'RS' ? 'Respond' : key === 'ID' ? 'Identify' : 'Recover'}</div>
+              <div key={key} style={{background:'#1e293b',border:'1px solid var(--border)',borderRadius:10,padding:12,textAlign:'center'}}>
+                <div style={{fontSize:12,fontFamily:'var(--font-mono)',color:'#94a3b8',marginBottom:4}}>{key}</div>
+                <div style={{fontSize:20,fontWeight:700,color:'#ffffff'}}>{value}</div>
+                <div style={{fontSize:11,color:'#94a3b8'}}>{key === 'PR' ? 'Protect' : key === 'DE' ? 'Detect' : key === 'RS' ? 'Respond' : key === 'ID' ? 'Identify' : 'Recover'}</div>
               </div>
             ))}
           </div>
         </div>
+
 
         {/* Coverage bar */}
         <div className="card" style={{marginBottom:20,borderLeft:'3px solid '+(coverage_rate>=80?'var(--kalro-green)':coverage_rate>=50?'var(--yellow)':'var(--kalro-red)')}}>

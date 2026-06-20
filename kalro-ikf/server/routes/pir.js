@@ -52,4 +52,20 @@ router.put('/:id', authenticate, requireMinRole('analyst'), (req,res) => {
   res.json(pirs[idx]);
 });
 
+router.post('/:id/action-item/:itemId/complete', authenticate, requireMinRole('analyst'), (req,res) => {
+  const pirs = read('pirs'); const idx = pirs.findIndex(p=>p.id===req.params.id);
+  if (idx===-1) return res.status(404).json({ error:'PIR not found' });
+  const itemId = req.params.itemId;
+  const actionItems = pirs[idx].action_items || [];
+  const itemIdx = actionItems.findIndex(item => item.id === itemId);
+  if (itemIdx === -1) return res.status(404).json({ error:'Action item not found' });
+  actionItems[itemIdx].completed = true;
+  actionItems[itemIdx].completed_at = new Date().toISOString();
+  actionItems[itemIdx].completed_by = req.user.id;
+  pirs[idx].updated_at = new Date().toISOString();
+  write('pirs', pirs);
+  logAction({ userId:req.user.id, action:'COMPLETE_PIR_ACTION_ITEM', targetType:'pir', targetId:req.params.id, metadata:{ item_id:itemId } });
+  res.json(actionItems[itemIdx]);
+});
+
 module.exports = router;

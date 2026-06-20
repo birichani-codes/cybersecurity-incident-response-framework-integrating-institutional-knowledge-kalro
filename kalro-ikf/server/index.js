@@ -65,6 +65,8 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/sde',           require('./routes/sde'));
 app.use('/api/log-collection', require('./routes/log-collection'));
 app.use('/api/emii',           require('./routes/emii'));
+app.use('/api/training',       require('./routes/training'));
+app.use('/api/external-reporting', require('./routes/external-reporting'));
 
 // 4. AUDIT & GOVERNANCE
 const { router: auditRouter } = require('./routes/audit');
